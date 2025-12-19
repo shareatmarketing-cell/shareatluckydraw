@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
 import { 
@@ -9,7 +9,6 @@ import {
   ArrowRight, 
   Loader2,
   CheckSquare,
-  User,
   ExternalLink,
   Ticket
 } from "lucide-react";
@@ -18,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import CodeEntryDialog from "@/components/CodeEntryDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserEntries } from "@/hooks/useDrawData";
 import { format } from "date-fns";
@@ -26,6 +26,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { user, profile, isLoading: authLoading } = useAuth();
   const { data: entries, isLoading: entriesLoading } = useUserEntries();
+  const [codeDialogOpen, setCodeDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -81,12 +82,13 @@ const Dashboard = () => {
                 <p className="text-muted-foreground text-sm">{user.email}</p>
               </div>
             </div>
-            <Link to="/enter">
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
-                <Ticket className="w-4 h-4" />
-                Redeem Coupon Code
-              </Button>
-            </Link>
+            <Button 
+              className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+              onClick={() => setCodeDialogOpen(true)}
+            >
+              <Ticket className="w-4 h-4" />
+              Redeem Coupon Code
+            </Button>
           </motion.div>
 
           {/* Stats Cards */}
@@ -151,7 +153,7 @@ const Dashboard = () => {
                 <p className="text-primary-foreground/80 text-sm mb-4">
                   Browse exclusive rewards and view this month's prizes
                 </p>
-                <Link to="/winners">
+                <Link to="/rewards">
                   <Button 
                     variant="secondary" 
                     size="sm"
@@ -171,16 +173,15 @@ const Dashboard = () => {
                 <p className="text-muted-foreground text-sm mb-4">
                   Enter your coupon code to join the lucky draw
                 </p>
-                <Link to="/enter">
-                  <Button 
-                    variant="default"
-                    size="sm"
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
-                  >
-                    <Ticket className="w-4 h-4" />
-                    Enter Code
-                  </Button>
-                </Link>
+                <Button 
+                  variant="default"
+                  size="sm"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
+                  onClick={() => setCodeDialogOpen(true)}
+                >
+                  <Ticket className="w-4 h-4" />
+                  Enter Code
+                </Button>
               </div>
               <Ticket className="absolute right-4 bottom-4 w-24 h-24 text-secondary/30" />
             </div>
@@ -210,16 +211,16 @@ const Dashboard = () => {
                     <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                   </Link>
 
-                  <Link 
-                    to="/enter"
-                    className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors group"
+                  <button 
+                    onClick={() => setCodeDialogOpen(true)}
+                    className="flex items-center justify-between p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors group text-left"
                   >
                     <div>
                       <p className="font-semibold text-foreground">Enter Draw</p>
                       <p className="text-sm text-muted-foreground">Submit your code</p>
                     </div>
                     <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                  </Link>
+                  </button>
 
                   <a 
                     href="https://shareatfoods.com"
@@ -285,6 +286,9 @@ const Dashboard = () => {
       </main>
 
       <Footer />
+
+      {/* Code Entry Dialog */}
+      <CodeEntryDialog open={codeDialogOpen} onOpenChange={setCodeDialogOpen} />
     </div>
   );
 };
