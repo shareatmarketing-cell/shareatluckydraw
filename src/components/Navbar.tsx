@@ -31,6 +31,11 @@ const Navbar = () => {
                 Enter Draw
               </Button>
             </Link>
+            <Link to="/rewards">
+              <Button variant={isActive("/rewards") ? "default" : "ghost"} className="gap-2">
+                Rewards
+              </Button>
+            </Link>
             <Link to="/winners">
               <Button variant={isActive("/winners") ? "default" : "ghost"} className="gap-2">
                 Winners
@@ -82,6 +87,12 @@ const Navbar = () => {
                 <Button variant={isActive("/enter") ? "default" : "ghost"} className="w-full justify-start gap-2">
                   <Gift className="w-4 h-4" />
                   Enter Draw
+                </Button>
+              </Link>
+              <Link to="/rewards" onClick={() => setIsOpen(false)}>
+                <Button variant={isActive("/rewards") ? "default" : "ghost"} className="w-full justify-start gap-2">
+                  <Gift className="w-4 h-4" />
+                  Rewards
                 </Button>
               </Link>
               <Link to="/winners" onClick={() => setIsOpen(false)}>
