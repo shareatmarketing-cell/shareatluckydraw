@@ -11,7 +11,9 @@ import {
   Plus,
   Upload,
   Trash2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Pencil,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +26,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import Navbar from "@/components/Navbar";
 import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface UserWithProfile {
   id: string;
@@ -33,6 +44,14 @@ interface UserWithProfile {
   avatar_url: string | null;
 }
 
+interface RewardForm {
+  name: string;
+  description: string;
+  month: string;
+  image_url: string;
+  is_active: boolean;
+}
+
 const AdminDashboard = () => {
   const { isAdmin, isLoading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("users");
@@ -40,6 +59,28 @@ const AdminDashboard = () => {
   const [newCode, setNewCode] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  // Reward form state
+  const [rewardDialogOpen, setRewardDialogOpen] = useState(false);
+  const [editingReward, setEditingReward] = useState<string | null>(null);
+  const [rewardForm, setRewardForm] = useState<RewardForm>({
+    name: "",
+    description: "",
+    month: format(new Date(), "yyyy-MM-dd"),
+    image_url: "",
+    is_active: true,
+  });
+
+  const resetRewardForm = () => {
+    setRewardForm({
+      name: "",
+      description: "",
+      month: format(new Date(), "yyyy-MM-dd"),
+      image_url: "",
+      is_active: true,
+    });
+    setEditingReward(null);
+  };
 
   // Fetch all users with profiles
   const { data: users = [] } = useQuery({
@@ -205,6 +246,94 @@ const AdminDashboard = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  // Add reward mutation
+  const addRewardMutation = useMutation({
+    mutationFn: async (reward: RewardForm) => {
+      const { error } = await supabase.from('prizes').insert({
+        name: reward.name,
+        description: reward.description,
+        month: reward.month,
+        image_url: reward.image_url || null,
+        is_active: reward.is_active,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-prizes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-active-rewards'] });
+      setRewardDialogOpen(false);
+      resetRewardForm();
+      toast.success("Reward added successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to add reward");
+    }
+  });
+
+  // Update reward mutation
+  const updateRewardMutation = useMutation({
+    mutationFn: async ({ id, reward }: { id: string; reward: RewardForm }) => {
+      const { error } = await supabase.from('prizes').update({
+        name: reward.name,
+        description: reward.description,
+        month: reward.month,
+        image_url: reward.image_url || null,
+        is_active: reward.is_active,
+      }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-prizes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-active-rewards'] });
+      setRewardDialogOpen(false);
+      resetRewardForm();
+      toast.success("Reward updated successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update reward");
+    }
+  });
+
+  // Delete reward mutation
+  const deleteRewardMutation = useMutation({
+    mutationFn: async (rewardId: string) => {
+      const { error } = await supabase.from('prizes').delete().eq('id', rewardId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-prizes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-active-rewards'] });
+      toast.success("Reward deleted");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete reward");
+    }
+  });
+
+  const handleSaveReward = () => {
+    if (!rewardForm.name.trim()) {
+      toast.error("Please enter a reward name");
+      return;
+    }
+    if (editingReward) {
+      updateRewardMutation.mutate({ id: editingReward, reward: rewardForm });
+    } else {
+      addRewardMutation.mutate(rewardForm);
+    }
+  };
+
+  const handleEditReward = (prize: any) => {
+    setEditingReward(prize.id);
+    setRewardForm({
+      name: prize.name,
+      description: prize.description || "",
+      month: prize.month,
+      image_url: prize.image_url || "",
+      is_active: prize.is_active ?? true,
+    });
+    setRewardDialogOpen(true);
   };
 
   if (authLoading) {
@@ -526,10 +655,22 @@ const AdminDashboard = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
             >
+              {/* Add Reward Button */}
+              <div className="flex justify-end">
+                <Button onClick={() => { resetRewardForm(); setRewardDialogOpen(true); }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Reward
+                </Button>
+              </div>
+
+              {/* Rewards Grid */}
               <Card className="border-0 shadow-soft">
                 <CardHeader>
-                  <CardTitle className="text-lg font-semibold">Rewards Management</CardTitle>
+                  <CardTitle className="text-lg font-semibold">
+                    All Rewards ({prizes.length})
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -543,8 +684,13 @@ const AdminDashboard = () => {
                               className="w-full h-32 object-cover rounded-lg mb-3"
                             />
                           )}
+                          {!prize.image_url && (
+                            <div className="w-full h-32 bg-muted rounded-lg mb-3 flex items-center justify-center">
+                              <Gift className="w-8 h-8 text-muted-foreground" />
+                            </div>
+                          )}
                           <h3 className="font-semibold text-foreground">{prize.name}</h3>
-                          <p className="text-sm text-muted-foreground mt-1">{prize.description}</p>
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{prize.description}</p>
                           <div className="flex items-center justify-between mt-3">
                             <span className={`text-xs px-2 py-1 rounded-full ${
                               prize.is_active 
@@ -557,12 +703,32 @@ const AdminDashboard = () => {
                               {format(new Date(prize.month), 'MMM yyyy')}
                             </span>
                           </div>
+                          <div className="flex gap-2 mt-4">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="flex-1"
+                              onClick={() => handleEditReward(prize)}
+                            >
+                              <Pencil className="w-3 h-3 mr-1" />
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => deleteRewardMutation.mutate(prize.id)}
+                              disabled={deleteRewardMutation.isPending}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
                     {prizes.length === 0 && (
                       <div className="col-span-full p-8 text-center text-muted-foreground">
-                        No rewards found
+                        No rewards found. Add your first reward.
                       </div>
                     )}
                   </div>
@@ -590,6 +756,73 @@ const AdminDashboard = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Reward Dialog */}
+        <Dialog open={rewardDialogOpen} onOpenChange={(open) => { setRewardDialogOpen(open); if (!open) resetRewardForm(); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{editingReward ? "Edit Reward" : "Add New Reward"}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name *</Label>
+                <Input
+                  id="name"
+                  placeholder="e.g., iPhone 15 Pro"
+                  value={rewardForm.name}
+                  onChange={(e) => setRewardForm({ ...rewardForm, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe the reward..."
+                  value={rewardForm.description}
+                  onChange={(e) => setRewardForm({ ...rewardForm, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="month">Month</Label>
+                <Input
+                  id="month"
+                  type="date"
+                  value={rewardForm.month}
+                  onChange={(e) => setRewardForm({ ...rewardForm, month: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="image_url">Image URL</Label>
+                <Input
+                  id="image_url"
+                  placeholder="https://example.com/image.jpg"
+                  value={rewardForm.image_url}
+                  onChange={(e) => setRewardForm({ ...rewardForm, image_url: e.target.value })}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="is_active">Active</Label>
+                <Switch
+                  id="is_active"
+                  checked={rewardForm.is_active}
+                  onCheckedChange={(checked) => setRewardForm({ ...rewardForm, is_active: checked })}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => { setRewardDialogOpen(false); resetRewardForm(); }}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveReward}
+                disabled={addRewardMutation.isPending || updateRewardMutation.isPending}
+              >
+                {editingReward ? "Update" : "Add"} Reward
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
