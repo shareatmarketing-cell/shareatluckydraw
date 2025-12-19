@@ -59,9 +59,9 @@ const Navbar = () => {
                   History
                 </Button>
               </Link>
-              <Link to="/enter">
+              <Link to="/profile">
                 <Button 
-                  variant={isActive("/enter") ? "default" : "ghost"} 
+                  variant={isActive("/profile") ? "default" : "ghost"} 
                   className="gap-2"
                 >
                   <User className="w-4 h-4" />
@@ -175,6 +175,12 @@ const Navbar = () => {
                     <Button variant={isActive("/winners") ? "default" : "ghost"} className="w-full justify-start gap-2">
                       <Clock className="w-4 h-4" />
                       History
+                    </Button>
+                  </Link>
+                  <Link to="/profile" onClick={() => setIsOpen(false)}>
+                    <Button variant={isActive("/profile") ? "default" : "ghost"} className="w-full justify-start gap-2">
+                      <User className="w-4 h-4" />
+                      Profile
                     </Button>
                   </Link>
                   <Link to="/enter" onClick={() => setIsOpen(false)}>

@@ -11,6 +11,7 @@ import EnterDraw from "./pages/EnterDraw";
 import Dashboard from "./pages/Dashboard";
 import Winners from "./pages/Winners";
 import Rewards from "./pages/Rewards";
+import Profile from "./pages/Profile";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/winners" element={<Winners />} />
               <Route path="/rewards" element={<Rewards />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/admin" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
