@@ -244,9 +244,6 @@ const AdminDashboard = () => {
                       <thead>
                         <tr className="border-b border-border">
                           <th className="text-left p-3 font-medium text-muted-foreground">User</th>
-                          <th className="text-left p-3 font-medium text-muted-foreground">Email</th>
-                          <th className="text-left p-3 font-medium text-muted-foreground">Points</th>
-                          <th className="text-left p-3 font-medium text-muted-foreground">Total Earned</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">Joined</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">Actions</th>
                         </tr>
@@ -268,11 +265,6 @@ const AdminDashboard = () => {
                               </div>
                             </td>
                             <td className="p-3 text-muted-foreground">
-                              {user.email || 'N/A'}
-                            </td>
-                            <td className="p-3 text-primary font-medium">0</td>
-                            <td className="p-3 text-primary font-medium">0</td>
-                            <td className="p-3 text-muted-foreground">
                               {format(new Date(user.created_at), 'MM/dd/yyyy')}
                             </td>
                             <td className="p-3">
@@ -282,14 +274,14 @@ const AdminDashboard = () => {
                                 className="text-primary border-primary hover:bg-primary/5"
                               >
                                 <Settings className="w-3 h-3 mr-1" />
-                                Adjust Points
+                                Manage
                               </Button>
                             </td>
                           </tr>
                         ))}
                         {filteredUsers.length === 0 && (
                           <tr>
-                            <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                            <td colSpan={3} className="p-8 text-center text-muted-foreground">
                               No users found
                             </td>
                           </tr>
