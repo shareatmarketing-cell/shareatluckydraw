@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gift, CheckCircle, AlertCircle, Loader2, Sparkles } from "lucide-react";
+import { Gift, CheckCircle, AlertCircle, Loader2, Sparkles, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { validCodes } from "@/lib/mockData";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSubmitCode, useHasEnteredThisMonth, useCurrentPrize } from "@/hooks/useDrawData";
+import { Link } from "react-router-dom";
 import confetti from "canvas-confetti";
 
 interface CodeEntryFormProps {
@@ -12,9 +14,14 @@ interface CodeEntryFormProps {
 }
 
 const CodeEntryForm = ({ onSuccess }: CodeEntryFormProps) => {
+  const { user } = useAuth();
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  
+  const submitCode = useSubmitCode();
+  const { data: hasEntered, isLoading: checkingEntry } = useHasEnteredThisMonth();
+  const { data: currentPrize } = useCurrentPrize();
 
   const triggerConfetti = () => {
     const count = 200;
@@ -40,33 +47,20 @@ const CodeEntryForm = ({ onSuccess }: CodeEntryFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code.trim()) return;
+    if (!code.trim() || !user) return;
 
     setStatus("loading");
     setErrorMessage("");
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const foundCode = validCodes.find(
-      (c) => c.code.toLowerCase() === code.trim().toLowerCase()
-    );
-
-    if (!foundCode) {
+    try {
+      await submitCode.mutateAsync(code);
+      setStatus("success");
+      triggerConfetti();
+      onSuccess?.();
+    } catch (error) {
       setStatus("error");
-      setErrorMessage("Invalid code. Please check and try again.");
-      return;
+      setErrorMessage(error instanceof Error ? error.message : "An error occurred");
     }
-
-    if (foundCode.isRedeemed) {
-      setStatus("error");
-      setErrorMessage("This code has already been used.");
-      return;
-    }
-
-    setStatus("success");
-    triggerConfetti();
-    onSuccess?.();
   };
 
   const resetForm = () => {
@@ -74,6 +68,72 @@ const CodeEntryForm = ({ onSuccess }: CodeEntryFormProps) => {
     setStatus("idle");
     setErrorMessage("");
   };
+
+  // Not logged in state
+  if (!user) {
+    return (
+      <Card className="max-w-md mx-auto overflow-hidden">
+        <CardHeader className="text-center bg-gradient-to-br from-cream to-background pb-8">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-glow-primary"
+          >
+            <LogIn className="w-10 h-10 text-primary-foreground" />
+          </motion.div>
+          <CardTitle className="text-2xl">Login Required</CardTitle>
+          <CardDescription>
+            Please login or create an account to enter the lucky draw
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-6 text-center">
+          <Link to="/auth">
+            <Button variant="hero" size="lg" className="w-full">
+              <LogIn className="w-5 h-5" />
+              Login / Sign Up
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Already entered this month
+  if (hasEntered && status !== "success") {
+    return (
+      <Card className="max-w-md mx-auto overflow-hidden">
+        <CardHeader className="text-center bg-gradient-to-br from-cream to-background pb-8">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-br from-accent to-accent-glow flex items-center justify-center shadow-glow-success"
+          >
+            <CheckCircle className="w-10 h-10 text-accent-foreground" />
+          </motion.div>
+          <CardTitle className="text-2xl">You're Already In!</CardTitle>
+          <CardDescription>
+            You've already entered this month's lucky draw
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-6 text-center">
+          <p className="text-muted-foreground mb-4">
+            Good luck! The winner will be announced at the end of the month.
+          </p>
+          {currentPrize && (
+            <div className="p-4 rounded-xl bg-secondary/10 border border-secondary/20">
+              <p className="text-sm text-muted-foreground">This month's prize:</p>
+              <p className="font-display font-bold text-lg text-foreground">{currentPrize.name}</p>
+            </div>
+          )}
+          <Link to="/dashboard" className="block mt-4">
+            <Button variant="outline" className="w-full">
+              View Your Dashboard
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="max-w-md mx-auto overflow-hidden">
@@ -115,13 +175,21 @@ const CodeEntryForm = ({ onSuccess }: CodeEntryFormProps) => {
               <p className="text-muted-foreground mb-6">
                 Your entry has been submitted successfully. Good luck!
               </p>
+              {currentPrize && (
+                <div className="p-4 rounded-xl bg-secondary/10 border border-secondary/20 mb-4">
+                  <p className="text-sm text-muted-foreground">You're entered to win:</p>
+                  <p className="font-display font-bold text-lg text-foreground">{currentPrize.name}</p>
+                </div>
+              )}
               <div className="flex items-center justify-center gap-2 text-sm text-accent font-medium">
                 <Sparkles className="w-4 h-4" />
-                <span>Entry #{Math.floor(Math.random() * 1000) + 1} this month</span>
+                <span>Entry confirmed!</span>
               </div>
-              <Button onClick={resetForm} variant="outline" className="mt-6">
-                Enter Another Code
-              </Button>
+              <Link to="/dashboard" className="block mt-4">
+                <Button variant="outline" className="w-full">
+                  View Your Dashboard
+                </Button>
+              </Link>
             </motion.div>
           ) : (
             <motion.form
@@ -139,7 +207,7 @@ const CodeEntryForm = ({ onSuccess }: CodeEntryFormProps) => {
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
                   className="text-center text-lg font-mono tracking-wider uppercase"
-                  disabled={status === "loading"}
+                  disabled={status === "loading" || checkingEntry}
                 />
               </div>
 
@@ -159,12 +227,12 @@ const CodeEntryForm = ({ onSuccess }: CodeEntryFormProps) => {
                 variant="hero"
                 size="lg"
                 className="w-full"
-                disabled={status === "loading" || !code.trim()}
+                disabled={status === "loading" || !code.trim() || checkingEntry}
               >
-                {status === "loading" ? (
+                {status === "loading" || checkingEntry ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Validating...
+                    {checkingEntry ? "Checking..." : "Validating..."}
                   </>
                 ) : (
                   <>
@@ -174,9 +242,12 @@ const CodeEntryForm = ({ onSuccess }: CodeEntryFormProps) => {
                 )}
               </Button>
 
-              <p className="text-xs text-center text-muted-foreground">
-                Try codes: LUCKY123, WIN2024, SHAREAT2024A1
-              </p>
+              {currentPrize && (
+                <div className="text-center p-3 rounded-lg bg-secondary/10 border border-secondary/20">
+                  <p className="text-xs text-muted-foreground">This month's prize:</p>
+                  <p className="font-medium text-foreground">{currentPrize.name}</p>
+                </div>
+              )}
             </motion.form>
           )}
         </AnimatePresence>
