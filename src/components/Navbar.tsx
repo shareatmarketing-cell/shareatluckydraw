@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Gift, User, Menu, X, LogOut, LayoutDashboard, Clock, Ticket } from "lucide-react";
+import { Gift, User, Menu, X, LogOut, LayoutDashboard, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState } from "react";
@@ -72,14 +72,9 @@ const Navbar = () => {
             </div>
           ) : !isAuthPage ? (
             <div className="hidden md:flex items-center gap-2">
-              <Link to="/enter">
-                <Button variant={isActive("/enter") ? "default" : "ghost"} className="gap-2">
-                  <Gift className="w-4 h-4" />
-                  Enter Draw
-                </Button>
-              </Link>
               <Link to="/rewards">
                 <Button variant={isActive("/rewards") ? "default" : "ghost"} className="gap-2">
+                  <Gift className="w-4 h-4" />
                   Rewards
                 </Button>
               </Link>
@@ -184,12 +179,6 @@ const Navbar = () => {
                       Profile
                     </Button>
                   </Link>
-                  <Link to="/enter" onClick={() => setIsOpen(false)}>
-                    <Button variant={isActive("/enter") ? "default" : "ghost"} className="w-full justify-start gap-2">
-                      <Ticket className="w-4 h-4" />
-                      Enter Code
-                    </Button>
-                  </Link>
                   
                   {isAdmin && (
                     <Link to="/admin/dashboard" onClick={() => setIsOpen(false)}>
@@ -212,12 +201,6 @@ const Navbar = () => {
               <>
                   {!isAuthPage && (
                     <>
-                      <Link to="/enter" onClick={() => setIsOpen(false)}>
-                        <Button variant={isActive("/enter") ? "default" : "ghost"} className="w-full justify-start gap-2">
-                          <Gift className="w-4 h-4" />
-                          Enter Draw
-                        </Button>
-                      </Link>
                       <Link to="/rewards" onClick={() => setIsOpen(false)}>
                         <Button variant={isActive("/rewards") ? "default" : "ghost"} className="w-full justify-start gap-2">
                           <Gift className="w-4 h-4" />

@@ -7,7 +7,6 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import AuthPage from "./pages/Auth";
-import EnterDraw from "./pages/EnterDraw";
 import Dashboard from "./pages/Dashboard";
 import Winners from "./pages/Winners";
 import Rewards from "./pages/Rewards";
@@ -29,7 +28,6 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<AuthPage />} />
-              <Route path="/enter" element={<EnterDraw />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/winners" element={<Winners />} />
               <Route path="/rewards" element={<Rewards />} />
