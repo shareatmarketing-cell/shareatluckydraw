@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Users, 
@@ -7,19 +7,23 @@ import {
   BarChart3,
   Search,
   Settings,
-  TrendingUp
+  TrendingUp,
+  Plus,
+  Upload,
+  Trash2,
+  FileSpreadsheet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import Navbar from "@/components/Navbar";
+import { toast } from "sonner";
 
 interface UserWithProfile {
   id: string;
@@ -33,6 +37,9 @@ const AdminDashboard = () => {
   const { isAdmin, isLoading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("users");
   const [searchQuery, setSearchQuery] = useState("");
+  const [newCode, setNewCode] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   // Fetch all users with profiles
   const { data: users = [] } = useQuery({
@@ -107,6 +114,98 @@ const AdminDashboard = () => {
     },
     enabled: isAdmin
   });
+
+  // Add single code mutation
+  const addCodeMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const { error } = await supabase.from('codes').insert({ code: code.trim() });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-codes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-codes-stats'] });
+      setNewCode("");
+      toast.success("Code added successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to add code");
+    }
+  });
+
+  // Add bulk codes mutation
+  const addBulkCodesMutation = useMutation({
+    mutationFn: async (codes: string[]) => {
+      const { error } = await supabase.from('codes').insert(
+        codes.map(code => ({ code: code.trim() }))
+      );
+      if (error) throw error;
+      return codes.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-codes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-codes-stats'] });
+      toast.success(`${count} codes added successfully`);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to add codes");
+    }
+  });
+
+  // Delete code mutation
+  const deleteCodeMutation = useMutation({
+    mutationFn: async (codeId: string) => {
+      const { error } = await supabase.from('codes').delete().eq('id', codeId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-codes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-codes-stats'] });
+      toast.success("Code deleted");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete code");
+    }
+  });
+
+  const handleAddCode = () => {
+    if (!newCode.trim()) {
+      toast.error("Please enter a code");
+      return;
+    }
+    addCodeMutation.mutate(newCode);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const lines = text.split(/[\r\n]+/).filter(line => line.trim());
+      
+      if (lines.length === 0) {
+        toast.error("No codes found in file");
+        return;
+      }
+
+      // Skip header if it looks like one
+      const codes = lines[0].toLowerCase().includes('code') ? lines.slice(1) : lines;
+      
+      if (codes.length === 0) {
+        toast.error("No codes found in file");
+        return;
+      }
+
+      addBulkCodesMutation.mutate(codes);
+    };
+    reader.readAsText(file);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   if (authLoading) {
     return (
@@ -300,10 +399,67 @@ const AdminDashboard = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
             >
+              {/* Add Code Section */}
               <Card className="border-0 shadow-soft">
                 <CardHeader>
-                  <CardTitle className="text-lg font-semibold">Code Management</CardTitle>
+                  <CardTitle className="text-lg font-semibold">Add Codes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col md:flex-row gap-4">
+                    {/* Single Code Input */}
+                    <div className="flex-1">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Enter code (e.g., ABC123)"
+                          value={newCode}
+                          onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddCode()}
+                          className="font-mono"
+                        />
+                        <Button 
+                          onClick={handleAddCode}
+                          disabled={addCodeMutation.isPending}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Bulk Upload */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        accept=".csv,.txt"
+                        className="hidden"
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={addBulkCodesMutation.isPending}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Bulk Upload (CSV)
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    <FileSpreadsheet className="w-3 h-3 inline mr-1" />
+                    For bulk upload, use a CSV or TXT file with one code per line
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Codes Table */}
+              <Card className="border-0 shadow-soft">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold">
+                    All Codes ({codes.length})
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
@@ -314,6 +470,7 @@ const AdminDashboard = () => {
                           <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">Created</th>
                           <th className="text-left p-3 font-medium text-muted-foreground">Used At</th>
+                          <th className="text-right p-3 font-medium text-muted-foreground">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -335,12 +492,23 @@ const AdminDashboard = () => {
                             <td className="p-3 text-muted-foreground">
                               {code.used_at ? format(new Date(code.used_at), 'MM/dd/yyyy') : '-'}
                             </td>
+                            <td className="p-3 text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteCodeMutation.mutate(code.id)}
+                                disabled={deleteCodeMutation.isPending}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </td>
                           </tr>
                         ))}
                         {codes.length === 0 && (
                           <tr>
-                            <td colSpan={4} className="p-8 text-center text-muted-foreground">
-                              No codes found
+                            <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                              No codes found. Add your first code above.
                             </td>
                           </tr>
                         )}
