@@ -40,7 +40,7 @@ const AuthPage = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user && !authLoading) {
-      navigate("/enter");
+      navigate("/dashboard");
     }
   }, [user, authLoading, navigate]);
 
