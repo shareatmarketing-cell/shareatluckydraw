@@ -6,19 +6,7 @@ import { useState } from "react";
 const Navbar = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
-  const navLinks = [{
-    path: "/",
-    label: "Home",
-    icon: Gift
-  }, {
-    path: "/winners",
-    label: "Winners",
-    icon: Trophy
-  }, {
-    path: "/enter",
-    label: "Enter Draw",
-    icon: Gift
-  }];
+  const navLinks: { path: string; label: string; icon: typeof Gift }[] = [];
   const isActive = (path: string) => location.pathname === path;
   return <motion.nav initial={{
     y: -100
