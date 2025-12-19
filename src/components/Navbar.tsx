@@ -1,8 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Gift, Trophy, User, Menu, X } from "lucide-react";
+import { Gift, User, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import shareatLogo from "@/assets/shareat-logo.png";
+
 const Navbar = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
@@ -17,11 +19,7 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            
-            <div className="hidden sm:block">
-              <span className="font-display font-bold text-xl md:text-2xl text-foreground">Shareat</span>
-              
-            </div>
+            <img src={shareatLogo} alt="Shareat" className="h-10 md:h-12 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}
