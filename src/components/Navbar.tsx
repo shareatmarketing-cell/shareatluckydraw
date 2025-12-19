@@ -12,6 +12,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, profile, isAdmin, signOut } = useAuth();
   const isActive = (path: string) => location.pathname === path;
+  const isAuthPage = location.pathname === "/auth";
 
   const userName = profile?.full_name || user?.email?.split('@')[0] || 'User';
   const userInitials = userName.slice(0, 2).toUpperCase();
@@ -69,7 +70,7 @@ const Navbar = () => {
                 </Button>
               </Link>
             </div>
-          ) : (
+          ) : !isAuthPage ? (
             <div className="hidden md:flex items-center gap-2">
               <Link to="/enter">
                 <Button variant={isActive("/enter") ? "default" : "ghost"} className="gap-2">
@@ -88,7 +89,7 @@ const Navbar = () => {
                 </Button>
               </Link>
             </div>
-          )}
+          ) : null}
 
           {/* Right Side */}
           <div className="hidden md:flex items-center gap-3">
@@ -208,25 +209,29 @@ const Navbar = () => {
                   </Button>
                 </>
               ) : (
-                <>
-                  <Link to="/enter" onClick={() => setIsOpen(false)}>
-                    <Button variant={isActive("/enter") ? "default" : "ghost"} className="w-full justify-start gap-2">
-                      <Gift className="w-4 h-4" />
-                      Enter Draw
-                    </Button>
-                  </Link>
-                  <Link to="/rewards" onClick={() => setIsOpen(false)}>
-                    <Button variant={isActive("/rewards") ? "default" : "ghost"} className="w-full justify-start gap-2">
-                      <Gift className="w-4 h-4" />
-                      Rewards
-                    </Button>
-                  </Link>
-                  <Link to="/winners" onClick={() => setIsOpen(false)}>
-                    <Button variant={isActive("/winners") ? "default" : "ghost"} className="w-full justify-start">
-                      Winners
-                    </Button>
-                  </Link>
-                  <div className="pt-2 border-t border-border/50 mt-2">
+              <>
+                  {!isAuthPage && (
+                    <>
+                      <Link to="/enter" onClick={() => setIsOpen(false)}>
+                        <Button variant={isActive("/enter") ? "default" : "ghost"} className="w-full justify-start gap-2">
+                          <Gift className="w-4 h-4" />
+                          Enter Draw
+                        </Button>
+                      </Link>
+                      <Link to="/rewards" onClick={() => setIsOpen(false)}>
+                        <Button variant={isActive("/rewards") ? "default" : "ghost"} className="w-full justify-start gap-2">
+                          <Gift className="w-4 h-4" />
+                          Rewards
+                        </Button>
+                      </Link>
+                      <Link to="/winners" onClick={() => setIsOpen(false)}>
+                        <Button variant={isActive("/winners") ? "default" : "ghost"} className="w-full justify-start">
+                          Winners
+                        </Button>
+                      </Link>
+                    </>
+                  )}
+                  <div className={!isAuthPage ? "pt-2 border-t border-border/50 mt-2" : ""}>
                     <Link to="/auth" onClick={() => setIsOpen(false)}>
                       <Button variant="outline" className="w-full gap-2">
                         <User className="w-4 h-4" />
