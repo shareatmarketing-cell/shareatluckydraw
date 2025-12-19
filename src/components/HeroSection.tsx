@@ -1,14 +1,13 @@
 import { motion } from "framer-motion";
 import { Gift, Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { currentRewards } from "@/lib/mockData";
 import { Link } from "react-router-dom";
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-20">
+    <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden pt-20">
       {/* Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-cream to-background" />
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-cream/50 to-cream" />
       
       {/* Decorative circles */}
       <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse-slow" />
@@ -58,7 +57,7 @@ const HeroSection = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
+            className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <Link to="/enter">
               <Button variant="hero" size="xl" className="gap-2 min-w-[200px]">
@@ -72,57 +71,6 @@ const HeroSection = () => {
                 View Past Winners
               </Button>
             </Link>
-          </motion.div>
-
-          {/* Current Rewards Preview */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <p className="text-sm text-muted-foreground mb-4 uppercase tracking-wider font-medium">
-              This Month's Prizes
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
-              {currentRewards.map((reward, index) => (
-                <motion.div
-                  key={reward.id}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.6 + index * 0.1 }}
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  className="group relative bg-card rounded-2xl p-4 border border-border/50 shadow-card hover:shadow-elevated transition-all duration-300"
-                >
-                  <div className="absolute -top-2 -right-2 z-10">
-                    {reward.tier === 'grand' && (
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-secondary to-gold text-secondary-foreground text-xs font-bold shadow-glow-secondary">
-                        🏆
-                      </span>
-                    )}
-                    {reward.tier === 'first' && (
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-glow text-primary-foreground text-xs font-bold">
-                        1st
-                      </span>
-                    )}
-                    {reward.tier === 'second' && (
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-accent text-accent-foreground text-xs font-bold">
-                        2nd
-                      </span>
-                    )}
-                  </div>
-                  <div className="aspect-square rounded-xl overflow-hidden mb-3 bg-muted">
-                    <img
-                      src={reward.imageUrl}
-                      alt={reward.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                  </div>
-                  <h3 className="font-display font-bold text-sm text-foreground line-clamp-2">
-                    {reward.title}
-                  </h3>
-                </motion.div>
-              ))}
-            </div>
           </motion.div>
         </div>
       </div>
