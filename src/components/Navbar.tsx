@@ -42,24 +42,6 @@ const Navbar = () => {
                   Dashboard
                 </Button>
               </Link>
-              <Link to="/rewards">
-                <Button 
-                  variant={isActive("/rewards") ? "default" : "ghost"} 
-                  className="gap-2"
-                >
-                  <Gift className="w-4 h-4" />
-                  Rewards
-                </Button>
-              </Link>
-              <Link to="/winners">
-                <Button 
-                  variant={isActive("/winners") ? "default" : "ghost"} 
-                  className="gap-2"
-                >
-                  <Clock className="w-4 h-4" />
-                  History
-                </Button>
-              </Link>
               <Link to="/profile">
                 <Button 
                   variant={isActive("/profile") ? "default" : "ghost"} 
@@ -67,20 +49,6 @@ const Navbar = () => {
                 >
                   <User className="w-4 h-4" />
                   Profile
-                </Button>
-              </Link>
-            </div>
-          ) : !isAuthPage ? (
-            <div className="hidden md:flex items-center gap-2">
-              <Link to="/rewards">
-                <Button variant={isActive("/rewards") ? "default" : "ghost"} className="gap-2">
-                  <Gift className="w-4 h-4" />
-                  Rewards
-                </Button>
-              </Link>
-              <Link to="/winners">
-                <Button variant={isActive("/winners") ? "default" : "ghost"} className="gap-2">
-                  Winners
                 </Button>
               </Link>
             </div>
@@ -161,18 +129,6 @@ const Navbar = () => {
                       Dashboard
                     </Button>
                   </Link>
-                  <Link to="/rewards" onClick={() => setIsOpen(false)}>
-                    <Button variant={isActive("/rewards") ? "default" : "ghost"} className="w-full justify-start gap-2">
-                      <Gift className="w-4 h-4" />
-                      Rewards
-                    </Button>
-                  </Link>
-                  <Link to="/winners" onClick={() => setIsOpen(false)}>
-                    <Button variant={isActive("/winners") ? "default" : "ghost"} className="w-full justify-start gap-2">
-                      <Clock className="w-4 h-4" />
-                      History
-                    </Button>
-                  </Link>
                   <Link to="/profile" onClick={() => setIsOpen(false)}>
                     <Button variant={isActive("/profile") ? "default" : "ghost"} className="w-full justify-start gap-2">
                       <User className="w-4 h-4" />
@@ -199,21 +155,6 @@ const Navbar = () => {
                 </>
               ) : (
               <>
-                  {!isAuthPage && (
-                    <>
-                      <Link to="/rewards" onClick={() => setIsOpen(false)}>
-                        <Button variant={isActive("/rewards") ? "default" : "ghost"} className="w-full justify-start gap-2">
-                          <Gift className="w-4 h-4" />
-                          Rewards
-                        </Button>
-                      </Link>
-                      <Link to="/winners" onClick={() => setIsOpen(false)}>
-                        <Button variant={isActive("/winners") ? "default" : "ghost"} className="w-full justify-start">
-                          Winners
-                        </Button>
-                      </Link>
-                    </>
-                  )}
                   <div className={!isAuthPage ? "pt-2 border-t border-border/50 mt-2" : ""}>
                     <Link to="/auth" onClick={() => setIsOpen(false)}>
                       <Button variant="outline" className="w-full gap-2">
