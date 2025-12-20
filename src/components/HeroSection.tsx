@@ -2,10 +2,8 @@ import { motion } from "framer-motion";
 import { ArrowRight, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-
 const HeroSection = () => {
-  return (
-    <section className="relative min-h-[80vh] flex items-center overflow-hidden pt-20 bg-gradient-to-b from-cream to-background">
+  return <section className="relative min-h-[80vh] flex items-center overflow-hidden pt-20 bg-gradient-to-b from-cream to-background">
       {/* Background decorative elements */}
       <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/10 to-transparent" />
       <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/20 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
@@ -14,11 +12,15 @@ const HeroSection = () => {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Content */}
           <div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
+            <motion.div initial={{
+            opacity: 0,
+            y: 20
+          }} animate={{
+            opacity: 1,
+            y: 0
+          }} transition={{
+            delay: 0.1
+          }}>
               <h1 className="text-5xl sm:text-6xl md:text-7xl font-display font-bold leading-tight mb-2">
                 <span className="text-primary">Snack.</span>{" "}
                 <span className="text-secondary">Scan.</span>{" "}
@@ -29,22 +31,28 @@ const HeroSection = () => {
               </h2>
             </motion.div>
 
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-lg text-muted-foreground mb-8 max-w-lg"
-            >
+            <motion.p initial={{
+            opacity: 0,
+            y: 20
+          }} animate={{
+            opacity: 1,
+            y: 0
+          }} transition={{
+            delay: 0.2
+          }} className="text-lg text-muted-foreground mb-8 max-w-lg">
               Turn every crispy snack into REWARDS! Collect Shareat points, unlock prizes, 
               and unlock exclusive deals, vouchers, and sweepstakes.
             </motion.p>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="flex flex-wrap gap-4 mb-12"
-            >
+            <motion.div initial={{
+            opacity: 0,
+            y: 20
+          }} animate={{
+            opacity: 1,
+            y: 0
+          }} transition={{
+            delay: 0.3
+          }} className="flex flex-wrap gap-4 mb-12">
               <Link to="/enter">
                 <Button variant="hero" size="xl" className="gap-2">
                   Start Earning Points
@@ -60,34 +68,19 @@ const HeroSection = () => {
             </motion.div>
 
             {/* Stats */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="flex gap-8"
-            >
-              <div>
-                <p className="text-3xl font-display font-bold text-primary">10K+</p>
-                <p className="text-sm text-muted-foreground">Active Members</p>
-              </div>
-              <div>
-                <p className="text-3xl font-display font-bold text-secondary">₹50L+</p>
-                <p className="text-sm text-muted-foreground">Rewards Given</p>
-              </div>
-              <div>
-                <p className="text-3xl font-display font-bold text-green-500">500+</p>
-                <p className="text-sm text-muted-foreground">Winners</p>
-              </div>
-            </motion.div>
+            
           </div>
 
           {/* Right Image */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
-            className="relative hidden lg:block"
-          >
+          <motion.div initial={{
+          opacity: 0,
+          scale: 0.9
+        }} animate={{
+          opacity: 1,
+          scale: 1
+        }} transition={{
+          delay: 0.3
+        }} className="relative hidden lg:block">
             <div className="relative w-full aspect-square max-w-md mx-auto">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-secondary/20 to-green-500/20 rounded-3xl blur-2xl" />
               <div className="relative bg-gradient-to-br from-cream to-background rounded-3xl p-8 border border-border/50 shadow-2xl">
@@ -110,8 +103,6 @@ const HeroSection = () => {
           </motion.div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default HeroSection;
