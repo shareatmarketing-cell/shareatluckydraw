@@ -82,14 +82,6 @@ const HowItWorks = () => {
           })}
         </div>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="text-center text-sm text-muted-foreground mt-8"
-        >
-          *1 unique code = 10 Points. Collect your favorite snacks & maximize rewards!
-        </motion.p>
       </div>
     </section>
   );
