@@ -29,15 +29,6 @@ const steps = [
     iconBg: "bg-green-500/20",
     iconColor: "text-green-500",
   },
-  {
-    number: "4",
-    icon: Gift,
-    title: "Redeem Your Prize",
-    description: "Exchange your points for exclusive deals and amazing daily or weekly prizes",
-    color: "from-primary/20 to-primary/5",
-    iconBg: "bg-primary/20",
-    iconColor: "text-primary",
-  },
 ];
 
 const HowItWorks = () => {
@@ -52,7 +43,7 @@ const HowItWorks = () => {
         >
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
             Claim Your Shareat Points in{" "}
-            <span className="text-primary">4 Easy Steps!</span>
+            <span className="text-primary">3 Easy Steps!</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             It's simple, fun, and rewarding! Stop snacking without rewards today.
