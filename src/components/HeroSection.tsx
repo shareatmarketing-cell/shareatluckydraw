@@ -1,76 +1,112 @@
 import { motion } from "framer-motion";
-import { Gift, Sparkles, ArrowRight } from "lucide-react";
+import { ArrowRight, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden pt-20">
-      {/* Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-cream/50 to-cream" />
-      
-      {/* Decorative circles */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse-slow" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-pulse-slow" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-primary/5 to-secondary/5 rounded-full blur-3xl" />
+    <section className="relative min-h-[80vh] flex items-center overflow-hidden pt-20 bg-gradient-to-b from-cream to-background">
+      {/* Background decorative elements */}
+      <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/10 to-transparent" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/20 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2" />
 
       <div className="container relative z-10 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Badge */}
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Left Content */}
+          <div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <h1 className="text-5xl sm:text-6xl md:text-7xl font-display font-bold leading-tight mb-2">
+                <span className="text-primary">Snack.</span>{" "}
+                <span className="text-secondary">Scan.</span>{" "}
+                <span className="text-green-500">Win!</span>
+              </h1>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold text-foreground mb-6">
+                The Shareat Lucky Draw Party
+              </h2>
+            </motion.div>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-lg text-muted-foreground mb-8 max-w-lg"
+            >
+              Turn every crispy snack into REWARDS! Collect Shareat points, unlock prizes, 
+              and unlock exclusive deals, vouchers, and sweepstakes.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="flex flex-wrap gap-4 mb-12"
+            >
+              <Link to="/enter">
+                <Button variant="hero" size="xl" className="gap-2">
+                  Start Earning Points
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+              </Link>
+              <Link to="/dashboard">
+                <Button variant="outline" size="xl" className="gap-2">
+                  <Users className="w-5 h-5" />
+                  View My Points
+                </Button>
+              </Link>
+            </motion.div>
+
+            {/* Stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="flex gap-8"
+            >
+              <div>
+                <p className="text-3xl font-display font-bold text-primary">10K+</p>
+                <p className="text-sm text-muted-foreground">Active Members</p>
+              </div>
+              <div>
+                <p className="text-3xl font-display font-bold text-secondary">₹50L+</p>
+                <p className="text-sm text-muted-foreground">Rewards Given</p>
+              </div>
+              <div>
+                <p className="text-3xl font-display font-bold text-green-500">500+</p>
+                <p className="text-sm text-muted-foreground">Winners</p>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Right Image */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/20 border border-secondary/30 mb-6"
-          >
-            <Sparkles className="w-4 h-4 text-secondary" />
-            <span className="text-sm font-medium text-secondary-foreground">December 2024 Lucky Draw</span>
-          </motion.div>
-
-          {/* Main Heading */}
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-bold mb-6 leading-tight"
-          >
-            <span className="text-foreground">Win Amazing</span>
-            <br />
-            <span className="bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent">
-              Prizes Every Month!
-            </span>
-          </motion.h1>
-
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8"
+            className="relative hidden lg:block"
           >
-            Find the unique code inside your Shareat snack pack and enter it for a chance to win
-            incredible prizes. It's that simple!
-          </motion.p>
-
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
-          >
-            <Link to="/enter">
-              <Button variant="hero" size="xl" className="gap-2 min-w-[200px]">
-                <Gift className="w-5 h-5" />
-                Enter Code Now
-                <ArrowRight className="w-5 h-5" />
-              </Button>
-            </Link>
-            <Link to="/winners">
-              <Button variant="outline" size="lg">
-                View Past Winners
-              </Button>
-            </Link>
+            <div className="relative w-full aspect-square max-w-md mx-auto">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-secondary/20 to-green-500/20 rounded-3xl blur-2xl" />
+              <div className="relative bg-gradient-to-br from-cream to-background rounded-3xl p-8 border border-border/50 shadow-2xl">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-primary/10 rounded-2xl p-6 flex items-center justify-center">
+                    <span className="text-6xl">🍿</span>
+                  </div>
+                  <div className="bg-secondary/10 rounded-2xl p-6 flex items-center justify-center">
+                    <span className="text-6xl">🎁</span>
+                  </div>
+                  <div className="bg-green-500/10 rounded-2xl p-6 flex items-center justify-center">
+                    <span className="text-6xl">🏆</span>
+                  </div>
+                  <div className="bg-primary/10 rounded-2xl p-6 flex items-center justify-center">
+                    <span className="text-6xl">🎉</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>

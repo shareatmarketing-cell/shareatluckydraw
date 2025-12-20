@@ -1,89 +1,107 @@
 import { motion } from "framer-motion";
-import { Gift, QrCode, Trophy, Sparkles } from "lucide-react";
-const steps = [{
-  icon: Gift,
-  title: "Buy Shareat Snacks",
-  description: "Purchase any Shareat product from your nearest store",
-  color: "from-primary to-primary-glow",
-  shadowColor: "shadow-glow-primary"
-}, {
-  icon: QrCode,
-  title: "Find Your Code",
-  description: "Look for the unique code printed inside the packaging",
-  color: "from-secondary to-gold",
-  shadowColor: "shadow-glow-secondary"
-}, {
-  icon: Sparkles,
-  title: "Enter the Draw",
-  description: "Login and submit your code to enter the monthly draw",
-  color: "from-accent to-accent-glow",
-  shadowColor: "shadow-glow-success"
-}, {
-  icon: Trophy,
-  title: "Win Prizes!",
-  description: "Winners are announced at the end of each month",
-  color: "from-secondary to-gold",
-  shadowColor: "shadow-glow-secondary"
-}];
+import { UserPlus, Search, QrCode, Gift } from "lucide-react";
+
+const steps = [
+  {
+    number: "1",
+    icon: UserPlus,
+    title: "Create Your Account",
+    description: "Sign up using mobile or email and join the Shareat Party instantly",
+    color: "from-primary/20 to-primary/5",
+    iconBg: "bg-primary/20",
+    iconColor: "text-primary",
+  },
+  {
+    number: "2",
+    icon: Search,
+    title: "Find the Secret Code",
+    description: "Look for the code hidden inside every Shareat Snack Pack product",
+    color: "from-secondary/20 to-secondary/5",
+    iconBg: "bg-secondary/20",
+    iconColor: "text-secondary",
+  },
+  {
+    number: "3",
+    icon: QrCode,
+    title: "Enter Code to Earn Points",
+    description: "Submit your secret 12-digit code and watch points flood into your account",
+    color: "from-green-500/20 to-green-500/5",
+    iconBg: "bg-green-500/20",
+    iconColor: "text-green-500",
+  },
+  {
+    number: "4",
+    icon: Gift,
+    title: "Redeem Your Prize",
+    description: "Exchange your points for exclusive deals and amazing daily or weekly prizes",
+    color: "from-primary/20 to-primary/5",
+    iconBg: "bg-primary/20",
+    iconColor: "text-primary",
+  },
+];
+
 const HowItWorks = () => {
-  return <section className="py-20 bg-background relative overflow-hidden">
+  return (
+    <section className="py-20 bg-gradient-to-b from-background to-cream/50">
       <div className="container px-4">
-        <motion.div initial={{
-        opacity: 0,
-        y: 20
-      }} whileInView={{
-        opacity: 1,
-        y: 0
-      }} viewport={{
-        once: true
-      }} className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-foreground mb-4">
-            How It Works
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
+            Claim Your Shareat Points in{" "}
+            <span className="text-primary">4 Easy Steps!</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Participating in our lucky draw is super easy. Follow these simple steps!
+            It's simple, fun, and rewarding! Stop snacking without rewards today.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-          {steps.map((step, index) => <motion.div key={step.title} initial={{
-          opacity: 0,
-          y: 30
-        }} whileInView={{
-          opacity: 1,
-          y: 0
-        }} viewport={{
-          once: true
-        }} transition={{
-          delay: index * 0.1
-        }} className="relative">
-              {/* Connector line */}
-              {index < steps.length - 1}
-              
-              <div className="group text-center p-6 rounded-3xl bg-card border border-border/50 hover:shadow-elevated transition-all duration-300 hover:-translate-y-2">
-                {/* Step number */}
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-card border-2 border-primary flex items-center justify-center font-display font-bold text-primary text-sm">
-                  {index + 1}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {steps.map((step, index) => {
+            const Icon = step.icon;
+            return (
+              <motion.div
+                key={step.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="relative"
+              >
+                <div className={`h-full bg-gradient-to-b ${step.color} rounded-2xl p-6 border border-border/50 hover:shadow-lg transition-shadow`}>
+                  {/* Step number badge */}
+                  <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm shadow-lg">
+                    {step.number}
+                  </div>
+
+                  {/* Icon */}
+                  <div className={`w-16 h-16 ${step.iconBg} rounded-2xl flex items-center justify-center mb-4`}>
+                    <Icon className={`w-8 h-8 ${step.iconColor}`} />
+                  </div>
+
+                  {/* Content */}
+                  <h3 className="text-lg font-display font-bold mb-2">{step.title}</h3>
+                  <p className="text-sm text-muted-foreground">{step.description}</p>
                 </div>
-                
-                {/* Icon */}
-                <motion.div whileHover={{
-              scale: 1.1,
-              rotate: 5
-            }} className={`w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center ${step.shadowColor}`}>
-                  <step.icon className="w-10 h-10 text-primary-foreground" />
-                </motion.div>
-                
-                <h3 className="font-display font-bold text-xl text-foreground mb-2">
-                  {step.title}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {step.description}
-                </p>
-              </div>
-            </motion.div>)}
+              </motion.div>
+            );
+          })}
         </div>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="text-center text-sm text-muted-foreground mt-8"
+        >
+          *1 unique code = 10 Points. Collect your favorite snacks & maximize rewards!
+        </motion.p>
       </div>
-    </section>;
+    </section>
+  );
 };
+
 export default HowItWorks;
