@@ -13,7 +13,8 @@ import {
   Trash2,
   FileSpreadsheet,
   Pencil,
-  X
+  X,
+  Trophy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface UserWithProfile {
   id: string;
@@ -51,6 +59,14 @@ interface RewardForm {
   image_url: string;
   is_active: boolean;
 }
+
+interface WinnerForm {
+  user_id: string;
+  prize_id: string;
+  month: string;
+  is_public: boolean;
+}
+
 
 const AdminDashboard = () => {
   const { isAdmin, isLoading: authLoading } = useAuth();
@@ -71,6 +87,16 @@ const AdminDashboard = () => {
     is_active: true,
   });
 
+  // Winner form state
+  const [winnerDialogOpen, setWinnerDialogOpen] = useState(false);
+  const [editingWinner, setEditingWinner] = useState<string | null>(null);
+  const [winnerForm, setWinnerForm] = useState<WinnerForm>({
+    user_id: "",
+    prize_id: "",
+    month: format(new Date(), "yyyy-MM-dd"),
+    is_public: true,
+  });
+
   const resetRewardForm = () => {
     setRewardForm({
       name: "",
@@ -80,6 +106,16 @@ const AdminDashboard = () => {
       is_active: true,
     });
     setEditingReward(null);
+  };
+
+  const resetWinnerForm = () => {
+    setWinnerForm({
+      user_id: "",
+      prize_id: "",
+      month: format(new Date(), "yyyy-MM-dd"),
+      is_public: true,
+    });
+    setEditingWinner(null);
   };
 
   // Fetch all users with profiles
@@ -150,6 +186,23 @@ const AdminDashboard = () => {
       const { data } = await supabase
         .from('prizes')
         .select('*')
+        .order('created_at', { ascending: false });
+      return data || [];
+    },
+    enabled: isAdmin
+  });
+
+  // Fetch all winners for winners tab
+  const { data: winners = [] } = useQuery({
+    queryKey: ['admin-winners'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('winners')
+        .select(`
+          *,
+          profiles:user_id (full_name),
+          prizes:prize_id (name)
+        `)
         .order('created_at', { ascending: false });
       return data || [];
     },
@@ -312,6 +365,65 @@ const AdminDashboard = () => {
     }
   });
 
+  // Add winner mutation
+  const addWinnerMutation = useMutation({
+    mutationFn: async (winner: WinnerForm) => {
+      const { error } = await supabase.from('winners').insert({
+        user_id: winner.user_id,
+        prize_id: winner.prize_id || null,
+        month: winner.month,
+        is_public: winner.is_public,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-winners'] });
+      setWinnerDialogOpen(false);
+      resetWinnerForm();
+      toast.success("Winner added successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to add winner");
+    }
+  });
+
+  // Update winner mutation
+  const updateWinnerMutation = useMutation({
+    mutationFn: async ({ id, winner }: { id: string; winner: WinnerForm }) => {
+      const { error } = await supabase.from('winners').update({
+        user_id: winner.user_id,
+        prize_id: winner.prize_id || null,
+        month: winner.month,
+        is_public: winner.is_public,
+      }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-winners'] });
+      setWinnerDialogOpen(false);
+      resetWinnerForm();
+      toast.success("Winner updated successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update winner");
+    }
+  });
+
+  // Delete winner mutation
+  const deleteWinnerMutation = useMutation({
+    mutationFn: async (winnerId: string) => {
+      const { error } = await supabase.from('winners').delete().eq('id', winnerId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-winners'] });
+      toast.success("Winner deleted");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete winner");
+    }
+  });
+
   const handleSaveReward = () => {
     if (!rewardForm.name.trim()) {
       toast.error("Please enter a reward name");
@@ -321,6 +433,18 @@ const AdminDashboard = () => {
       updateRewardMutation.mutate({ id: editingReward, reward: rewardForm });
     } else {
       addRewardMutation.mutate(rewardForm);
+    }
+  };
+
+  const handleSaveWinner = () => {
+    if (!winnerForm.user_id) {
+      toast.error("Please select a user");
+      return;
+    }
+    if (editingWinner) {
+      updateWinnerMutation.mutate({ id: editingWinner, winner: winnerForm });
+    } else {
+      addWinnerMutation.mutate(winnerForm);
     }
   };
 
@@ -334,6 +458,17 @@ const AdminDashboard = () => {
       is_active: prize.is_active ?? true,
     });
     setRewardDialogOpen(true);
+  };
+
+  const handleEditWinner = (winner: any) => {
+    setEditingWinner(winner.id);
+    setWinnerForm({
+      user_id: winner.user_id,
+      prize_id: winner.prize_id || "",
+      month: winner.month,
+      is_public: winner.is_public ?? true,
+    });
+    setWinnerDialogOpen(true);
   };
 
   if (authLoading) {
@@ -388,6 +523,7 @@ const AdminDashboard = () => {
     { id: "users", label: "Users", icon: Users },
     { id: "codes", label: "Codes", icon: QrCode },
     { id: "rewards", label: "Rewards", icon: Gift },
+    { id: "winners", label: "Winners", icon: Trophy },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
   ];
 
@@ -737,6 +873,106 @@ const AdminDashboard = () => {
             </motion.div>
           )}
 
+          {activeTab === "winners" && (
+            <motion.div
+              key="winners"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
+            >
+              {/* Add Winner Button */}
+              <div className="flex justify-end">
+                <Button onClick={() => { resetWinnerForm(); setWinnerDialogOpen(true); }}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Winner
+                </Button>
+              </div>
+
+              {/* Winners Table */}
+              <Card className="border-0 shadow-soft">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold">
+                    All Winners ({winners.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left p-3 font-medium text-muted-foreground">Winner</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">Prize</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">Month</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
+                          <th className="text-right p-3 font-medium text-muted-foreground">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {winners.map((winner: any) => (
+                          <tr key={winner.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                            <td className="p-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <Trophy className="w-4 h-4 text-primary" />
+                                </div>
+                                <span className="font-medium text-foreground">
+                                  {winner.profiles?.full_name || 'Unknown User'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-3 text-foreground">
+                              {winner.prizes?.name || 'No prize assigned'}
+                            </td>
+                            <td className="p-3 text-muted-foreground">
+                              {format(new Date(winner.month), 'MMM yyyy')}
+                            </td>
+                            <td className="p-3">
+                              <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                                winner.is_public
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}>
+                                {winner.is_public ? "Public" : "Hidden"}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right">
+                              <div className="flex gap-1 justify-end">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditWinner(winner)}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => deleteWinnerMutation.mutate(winner.id)}
+                                  disabled={deleteWinnerMutation.isPending}
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {winners.length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                              No winners found. Add your first winner.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
           {activeTab === "analytics" && (
             <motion.div
               key="analytics"
@@ -819,6 +1055,81 @@ const AdminDashboard = () => {
                 disabled={addRewardMutation.isPending || updateRewardMutation.isPending}
               >
                 {editingReward ? "Update" : "Add"} Reward
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Winner Dialog */}
+        <Dialog open={winnerDialogOpen} onOpenChange={(open) => { setWinnerDialogOpen(open); if (!open) resetWinnerForm(); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{editingWinner ? "Edit Winner" : "Add New Winner"}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="winner_user">User *</Label>
+                <Select
+                  value={winnerForm.user_id}
+                  onValueChange={(value) => setWinnerForm({ ...winnerForm, user_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user: any) => (
+                      <SelectItem key={user.user_id} value={user.user_id}>
+                        {user.full_name || 'Unknown User'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="winner_prize">Prize</Label>
+                <Select
+                  value={winnerForm.prize_id}
+                  onValueChange={(value) => setWinnerForm({ ...winnerForm, prize_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a prize (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {prizes.map((prize: any) => (
+                      <SelectItem key={prize.id} value={prize.id}>
+                        {prize.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="winner_month">Month</Label>
+                <Input
+                  id="winner_month"
+                  type="date"
+                  value={winnerForm.month}
+                  onChange={(e) => setWinnerForm({ ...winnerForm, month: e.target.value })}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="winner_is_public">Show on Leaderboard</Label>
+                <Switch
+                  id="winner_is_public"
+                  checked={winnerForm.is_public}
+                  onCheckedChange={(checked) => setWinnerForm({ ...winnerForm, is_public: checked })}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => { setWinnerDialogOpen(false); resetWinnerForm(); }}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveWinner}
+                disabled={addWinnerMutation.isPending || updateWinnerMutation.isPending}
+              >
+                {editingWinner ? "Update" : "Add"} Winner
               </Button>
             </div>
           </DialogContent>
