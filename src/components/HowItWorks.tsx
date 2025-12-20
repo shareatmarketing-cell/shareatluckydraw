@@ -42,7 +42,7 @@ const HowItWorks = () => {
           className="text-center mb-12"
         >
           <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
-            Claim Your Shareat Points in{" "}
+            Enter the Lucky Draw in{" "}
             <span className="text-primary">3 Easy Steps!</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
