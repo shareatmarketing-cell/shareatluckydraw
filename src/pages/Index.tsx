@@ -2,7 +2,6 @@ import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import HowItWorks from "@/components/HowItWorks";
-import TiersSection from "@/components/TiersSection";
 import FeaturedRewards from "@/components/FeaturedRewards";
 import LeaderboardSection from "@/components/LeaderboardSection";
 import LuckyDrawStats from "@/components/LuckyDrawStats";
@@ -27,7 +26,6 @@ const Index = () => {
         <main>
           <HeroSection />
           <HowItWorks />
-          <TiersSection />
           <FeaturedRewards />
           <LeaderboardSection />
           <LuckyDrawStats />
