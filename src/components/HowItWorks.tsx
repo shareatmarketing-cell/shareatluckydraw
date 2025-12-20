@@ -23,7 +23,7 @@ const steps = [
   {
     number: "3",
     icon: QrCode,
-    title: "Enter Code to Earn Points",
+    title: "Enter Code to Participate in the Lucky Draw",
     description: "Submit your secret 12-digit code and watch points flood into your account",
     color: "from-green-500/20 to-green-500/5",
     iconBg: "bg-green-500/20",
