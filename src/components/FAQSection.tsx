@@ -151,33 +151,6 @@ const FAQSection = () => {
             })}
           </Accordion>
         </motion.div>
-
-        {/* Bottom CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          viewport={{ once: true }}
-          className="mt-14 text-center"
-        >
-          <div className="inline-flex flex-col sm:flex-row items-center gap-4 bg-card border border-border/50 rounded-2xl px-8 py-5 shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <HelpCircle className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <div className="text-left">
-                <p className="font-semibold text-foreground">Still have questions?</p>
-                <p className="text-sm text-muted-foreground">We're here to help you win!</p>
-              </div>
-            </div>
-            <a 
-              href="mailto:support@shareat.com" 
-              className="px-6 py-2.5 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold rounded-full hover:shadow-lg hover:shadow-primary/25 transition-all duration-300"
-            >
-              Contact Support
-            </a>
-          </div>
-        </motion.div>
       </div>
     </section>
   );
