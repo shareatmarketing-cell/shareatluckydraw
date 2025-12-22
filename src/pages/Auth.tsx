@@ -28,34 +28,36 @@ const AuthPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       
-      <main className="pt-24 pb-16 px-4">
-        <div className="container max-w-md mx-auto">
+      <main className="flex-1 pt-24 pb-16 px-4 overflow-y-auto">
+        <div className="container max-w-lg mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <Card className="overflow-hidden">
-              <CardContent className="p-6">
+            <Card className="overflow-visible">
+              <CardContent className="p-4 sm:p-6">
                 <Tabs defaultValue="signin" className="w-full">
                   <TabsList className="grid w-full grid-cols-2 mb-6">
                     <TabsTrigger value="signin">Sign In</TabsTrigger>
                     <TabsTrigger value="signup">Sign Up</TabsTrigger>
                   </TabsList>
                   
-                  <TabsContent value="signin" className="flex justify-center">
+                  <TabsContent value="signin" className="flex justify-center min-h-[400px]">
                     <SignIn 
                       appearance={{
                         elements: {
                           rootBox: "w-full",
-                          card: "shadow-none p-0 bg-transparent",
+                          card: "shadow-none p-0 bg-transparent w-full",
                           headerTitle: "hidden",
                           headerSubtitle: "hidden",
                           socialButtonsBlockButton: "border border-border bg-background hover:bg-muted",
                           formButtonPrimary: "bg-primary hover:bg-primary/90",
                           footerActionLink: "text-primary hover:text-primary/80",
+                          formFieldInput: "bg-background border-border",
+                          footer: "hidden",
                         }
                       }}
                       routing="hash"
@@ -64,17 +66,19 @@ const AuthPage = () => {
                     />
                   </TabsContent>
                   
-                  <TabsContent value="signup" className="flex justify-center">
+                  <TabsContent value="signup" className="flex justify-center min-h-[500px]">
                     <SignUp 
                       appearance={{
                         elements: {
                           rootBox: "w-full",
-                          card: "shadow-none p-0 bg-transparent",
+                          card: "shadow-none p-0 bg-transparent w-full",
                           headerTitle: "hidden",
                           headerSubtitle: "hidden",
                           socialButtonsBlockButton: "border border-border bg-background hover:bg-muted",
                           formButtonPrimary: "bg-primary hover:bg-primary/90",
                           footerActionLink: "text-primary hover:text-primary/80",
+                          formFieldInput: "bg-background border-border",
+                          footer: "hidden",
                         }
                       }}
                       routing="hash"
