@@ -10,24 +10,24 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/ClerkAuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, profile, isLoading: authLoading, signOut } = useAuth();
+  const { user, profile, isLoading: authLoading, signOut, isSignedIn } = useAuth();
   
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading && !isSignedIn) {
       navigate("/auth");
     }
-  }, [user, authLoading, navigate]);
+  }, [isSignedIn, authLoading, navigate]);
 
   useEffect(() => {
     if (profile) {
@@ -66,7 +66,7 @@ const Profile = () => {
     }
   };
 
-  if (authLoading || !user) {
+  if (authLoading || !isSignedIn || !user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

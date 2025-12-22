@@ -18,26 +18,26 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CodeEntryDialog from "@/components/CodeEntryDialog";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/ClerkAuthContext";
 import { useUserEntries } from "@/hooks/useDrawData";
 import { format } from "date-fns";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, profile, isLoading: authLoading } = useAuth();
+  const { user, profile, isLoading: authLoading, isSignedIn } = useAuth();
   const { data: entries, isLoading: entriesLoading } = useUserEntries();
   const [codeDialogOpen, setCodeDialogOpen] = useState(() => {
     return location.state?.openCodeDialog || false;
   });
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading && !isSignedIn) {
       navigate("/auth");
     }
-  }, [user, authLoading, navigate]);
+  }, [isSignedIn, authLoading, navigate]);
 
-  if (authLoading || !user) {
+  if (authLoading || !isSignedIn || !user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

@@ -6,7 +6,7 @@ import { Trophy, Calendar, Gift, Ticket, Loader2, CheckCircle, Clock } from "luc
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/ClerkAuthContext";
 import { useUserEntries, usePublicWinners } from "@/hooks/useDrawData";
 import { format } from "date-fns";
 

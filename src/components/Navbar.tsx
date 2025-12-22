@@ -1,15 +1,17 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Gift, User, Menu, X, LogOut, LayoutDashboard, Clock } from "lucide-react";
+import { Gift, User, Menu, X, LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState } from "react";
 import shareatLogo from "@/assets/shareat-logo.png";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/ClerkAuthContext";
+import { UserButton, useUser } from "@clerk/clerk-react";
 
 const Navbar = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const { isSignedIn } = useUser();
   const { user, profile, isAdmin, signOut } = useAuth();
   const isActive = (path: string) => location.pathname === path;
   const isAuthPage = location.pathname === "/auth";
@@ -31,7 +33,7 @@ const Navbar = () => {
           </Link>
 
           {/* Center Navigation - Logged In */}
-          {user ? (
+          {isSignedIn ? (
             <div className="hidden md:flex items-center gap-1">
               <Link to="/dashboard">
                 <Button 
@@ -56,7 +58,7 @@ const Navbar = () => {
 
           {/* Right Side */}
           <div className="hidden md:flex items-center gap-3">
-            {user ? (
+            {isSignedIn ? (
               <>
                 {/* Points Badge */}
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-card">
@@ -64,19 +66,21 @@ const Navbar = () => {
                   <span className="text-sm font-semibold text-foreground">0 pts</span>
                 </div>
                 
-                {/* User Avatar with Dropdown */}
+                {/* User Avatar with Clerk UserButton */}
                 <div className="flex items-center gap-2">
                   {isAdmin && (
                     <Link to="/admin/dashboard">
                       <Button variant="outline" size="sm">Admin</Button>
                     </Link>
                   )}
-                  <Avatar className="w-9 h-9 border-2 border-primary/20 cursor-pointer" onClick={() => signOut()}>
-                    <AvatarImage src={profile?.avatar_url || undefined} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
-                      {userInitials}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserButton 
+                    afterSignOutUrl="/"
+                    appearance={{
+                      elements: {
+                        avatarBox: "w-9 h-9 border-2 border-primary/20",
+                      }
+                    }}
+                  />
                 </div>
               </>
             ) : (
@@ -103,7 +107,7 @@ const Navbar = () => {
             className="md:hidden py-4 border-t border-border/50"
           >
             <div className="flex flex-col gap-2">
-              {user ? (
+              {isSignedIn ? (
                 <>
                   {/* User Info */}
                   <div className="flex items-center gap-3 px-2 py-3 mb-2 border-b border-border/50">
@@ -115,7 +119,7 @@ const Navbar = () => {
                     </Avatar>
                     <div className="flex-1">
                       <p className="font-semibold text-foreground">{userName}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                      <p className="text-xs text-muted-foreground">{user?.email}</p>
                     </div>
                     <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10">
                       <Gift className="w-3 h-3 text-primary" />
