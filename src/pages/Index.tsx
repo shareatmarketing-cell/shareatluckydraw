@@ -1,6 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
+import CountdownTimer from "@/components/CountdownTimer";
 import HowItWorks from "@/components/HowItWorks";
 import FeaturedRewards from "@/components/FeaturedRewards";
 import LeaderboardSection from "@/components/LeaderboardSection";
@@ -25,6 +26,7 @@ const Index = () => {
         <Navbar />
         <main>
           <HeroSection />
+          <CountdownTimer />
           <HowItWorks />
           <FeaturedRewards />
           <LeaderboardSection />
