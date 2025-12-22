@@ -25,7 +25,7 @@ import { format } from "date-fns";
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, profile, isLoading: authLoading, isSignedIn } = useAuth();
+  const { user, profile, isAdmin, isLoading: authLoading, isSignedIn } = useAuth();
   const { data: entries, isLoading: entriesLoading } = useUserEntries();
   const [codeDialogOpen, setCodeDialogOpen] = useState(() => {
     return location.state?.openCodeDialog || false;
@@ -85,13 +85,23 @@ const Dashboard = () => {
                 <p className="text-muted-foreground text-sm">{user.email}</p>
               </div>
             </div>
-            <Button 
-              className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
-              onClick={() => setCodeDialogOpen(true)}
-            >
-              <Ticket className="w-4 h-4" />
-              Redeem Coupon Code
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              {isAdmin && (
+                <Link to="/admin/dashboard">
+                  <Button variant="outline" className="gap-2">
+                    Admin Dashboard
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              )}
+              <Button 
+                className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+                onClick={() => setCodeDialogOpen(true)}
+              >
+                <Ticket className="w-4 h-4" />
+                Redeem Coupon Code
+              </Button>
+            </div>
           </motion.div>
 
           {/* Stats Cards */}
