@@ -1,67 +1,110 @@
 import { motion } from "framer-motion";
+import { HelpCircle, Sparkles, Calendar, Ticket, Trophy, Gift, Clock, Users } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { LucideIcon } from "lucide-react";
 
-const faqs = [
+interface FAQ {
+  question: string;
+  answer: string;
+  icon: LucideIcon;
+}
+
+const faqs: FAQ[] = [
   {
-    question: "How do I find and redeem codes from snack packs?",
-    answer: "Look inside your Shareat snack pack packaging for a unique 12-digit code printed on a special card or the inside of the wrapper. Enter this code on our website or app to earn points instantly!",
+    question: "What is the Shareat Lucky Draw?",
+    answer: "The Shareat Lucky Draw is a monthly contest where you can win amazing prizes just by entering unique codes found inside Shareat snack packs. Every code you enter gives you an entry into that month's lucky draw!",
+    icon: Ticket,
   },
   {
-    question: "How many points do I get per code?",
-    answer: "Each valid unique code gives you 10 points. Collect more snack packs and enter more codes to accumulate points faster and climb the leaderboard!",
+    question: "How do I enter the Lucky Draw?",
+    answer: "Simply find the unique 12-digit code inside your Shareat snack pack, create an account or log in, and enter the code. Each valid code automatically enters you into the current month's lucky draw.",
+    icon: Gift,
   },
   {
-    question: "How can I redeem my prizes?",
-    answer: "Once you have enough points, visit the Rewards section and choose from available prizes. E-vouchers are sent instantly via email, while physical prizes are delivered within 7-14 business days.",
+    question: "When does the Lucky Draw happen?",
+    answer: "The Lucky Draw takes place at the end of every month. Winners are randomly selected from all valid entries received during that month and announced on the 1st of the following month.",
+    icon: Calendar,
   },
   {
-    question: "What happens if my code doesn't work?",
-    answer: "Make sure you're entering the code exactly as printed. If it still doesn't work, the code might already be redeemed or expired. Contact our support team for assistance.",
+    question: "What prizes can I win?",
+    answer: "Prizes vary each month and include exciting rewards like smartphones (iPhone, Samsung), gaming consoles (PS5, Xbox), shopping vouchers (Amazon, Flipkart), and exclusive Shareat merchandise!",
+    icon: Trophy,
   },
   {
-    question: "What are the Lucky Draw and Monthly Challenge rewards?",
-    answer: "The Lucky Draw gives random winners a chance at mega prizes every month. The Monthly Challenge rewards the top 3 point earners with exclusive grand prizes like electronics, vouchers, and more!",
+    question: "How are winners selected?",
+    answer: "Winners are selected through a completely random and transparent computerized draw. Each code entry gives you one chance to win. The more codes you enter, the higher your chances!",
+    icon: Users,
   },
   {
-    question: "Can I transfer my points to another account?",
-    answer: "Currently, points are non-transferable and tied to your account. However, you can gift redeemed prizes to anyone!",
+    question: "How will I know if I've won?",
+    answer: "Winners are notified via email and SMS within 24 hours of the draw. You can also check the Winners section on our website. Make sure your contact details are up to date in your profile!",
+    icon: Sparkles,
   },
   {
-    question: "How long are my points valid?",
-    answer: "Points remain valid for 12 months from the date they were earned. Make sure to redeem them before they expire!",
+    question: "Is there a limit to how many codes I can enter?",
+    answer: "There's no limit! You can enter as many valid codes as you have. Each code gives you an additional entry, increasing your chances of winning the Lucky Draw.",
+    icon: Ticket,
   },
   {
-    question: "Do I need to pay for shipping for prizes/rewards?",
-    answer: "Shipping is free for most prizes within India. For select premium rewards, nominal shipping charges may apply as mentioned on the reward details page.",
+    question: "How long do I have to claim my prize?",
+    answer: "Winners must claim their prizes within 30 days of the announcement. E-vouchers are sent instantly via email, while physical prizes are delivered within 7-14 business days after verification.",
+    icon: Clock,
   },
 ];
 
 const FAQSection = () => {
   return (
-    <section className="py-20 bg-gradient-to-b from-background to-cream/30">
-      <div className="container px-4">
+    <section id="faq" className="py-24 relative overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-cream/20 to-background" />
+      <div className="absolute top-20 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-20 left-0 w-80 h-80 bg-secondary/5 rounded-full blur-3xl" />
+
+      <div className="container px-4 relative z-10">
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-12"
+          className="text-center mb-14"
         >
-          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
-            Frequently Asked{" "}
-            <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Questions
+          <motion.div
+            initial={{ scale: 0 }}
+            whileInView={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
+            viewport={{ once: true }}
+            className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-6"
+          >
+            <HelpCircle className="w-5 h-5 text-primary" />
+            <span className="text-sm font-semibold text-primary">Got Questions?</span>
+          </motion.div>
+
+          <h2 className="text-4xl md:text-5xl font-display font-bold mb-5">
+            Lucky Draw{" "}
+            <span className="relative inline-block">
+              <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                FAQ
+              </span>
+              <motion.div
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+                viewport={{ once: true }}
+                className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-primary via-secondary to-accent rounded-full origin-left"
+              />
             </span>
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Everything you need to know about the Shareat Lucky Draw
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Everything you need to know about winning amazing prizes with Shareat
           </p>
         </motion.div>
 
+        {/* FAQ Accordion */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -69,21 +112,71 @@ const FAQSection = () => {
           className="max-w-3xl mx-auto"
         >
           <Accordion type="single" collapsible className="space-y-4">
-            {faqs.map((faq, index) => (
-              <AccordionItem
-                key={index}
-                value={`item-${index}`}
-                className="bg-card rounded-xl border border-border px-6 data-[state=open]:shadow-md transition-shadow"
-              >
-                <AccordionTrigger className="text-left font-medium hover:no-underline">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
+            {faqs.map((faq, index) => {
+              const Icon = faq.icon;
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <AccordionItem
+                    value={`item-${index}`}
+                    className="group bg-card border border-border/50 rounded-2xl px-6 overflow-hidden data-[state=open]:border-primary/30 data-[state=open]:shadow-lg data-[state=open]:shadow-primary/5 transition-all duration-300"
+                  >
+                    <AccordionTrigger className="text-left font-medium hover:no-underline py-5 gap-4">
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center shrink-0 group-data-[state=open]:from-primary group-data-[state=open]:to-primary/80 transition-all duration-300">
+                          <Icon className="w-5 h-5 text-primary group-data-[state=open]:text-primary-foreground transition-colors duration-300" />
+                        </div>
+                        <span className="text-foreground group-hover:text-primary transition-colors">
+                          {faq.question}
+                        </span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground pb-5 pl-14">
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        {faq.answer}
+                      </motion.div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </motion.div>
+              );
+            })}
           </Accordion>
+        </motion.div>
+
+        {/* Bottom CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          viewport={{ once: true }}
+          className="mt-14 text-center"
+        >
+          <div className="inline-flex flex-col sm:flex-row items-center gap-4 bg-card border border-border/50 rounded-2xl px-8 py-5 shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                <HelpCircle className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-foreground">Still have questions?</p>
+                <p className="text-sm text-muted-foreground">We're here to help you win!</p>
+              </div>
+            </div>
+            <a 
+              href="mailto:support@shareat.com" 
+              className="px-6 py-2.5 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold rounded-full hover:shadow-lg hover:shadow-primary/25 transition-all duration-300"
+            >
+              Contact Support
+            </a>
+          </div>
         </motion.div>
       </div>
     </section>
