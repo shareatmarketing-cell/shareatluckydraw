@@ -60,12 +60,6 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-3">
             {isSignedIn ? (
               <>
-                {/* Points Badge */}
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-card">
-                  <Gift className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">0 pts</span>
-                </div>
-                
                 {/* User Avatar with Clerk UserButton */}
                 <div className="flex items-center gap-2">
                   <Link to="/admin/dashboard">
@@ -125,10 +119,6 @@ const Navbar = () => {
                     <div className="flex-1">
                       <p className="font-semibold text-foreground">{userName}</p>
                       <p className="text-xs text-muted-foreground">{user?.email}</p>
-                    </div>
-                    <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10">
-                      <Gift className="w-3 h-3 text-primary" />
-                      <span className="text-xs font-semibold text-primary">0 pts</span>
                     </div>
                   </div>
 
