@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { ClerkProvider, SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 import { ClerkAuthProvider } from "@/contexts/ClerkAuthContext";
@@ -62,9 +62,9 @@ const MissingClerkKey = ({
             >
               Save key & reload
             </Button>
-            <Link to="/">
+            <a href="/">
               <Button variant="outline" className="w-full sm:w-auto">Back to home</Button>
-            </Link>
+            </a>
           </div>
           <p className="text-xs text-muted-foreground">
             This key is public and safe to store client-side. Once saved, we’ll use it to
