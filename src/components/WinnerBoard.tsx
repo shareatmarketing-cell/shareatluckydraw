@@ -1,9 +1,78 @@
 import { motion } from "framer-motion";
-import { Trophy, MapPin, Calendar } from "lucide-react";
+import { Trophy, Calendar, Loader2, Gift } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { pastWinners } from "@/lib/mockData";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+
+interface WinnerData {
+  id: string;
+  month: string;
+  is_public: boolean;
+  full_name: string | null;
+  prize_name: string | null;
+}
 
 const WinnerBoard = () => {
+  const { data: winners = [], isLoading } = useQuery({
+    queryKey: ['public-winners'],
+    queryFn: async () => {
+      // First get winners
+      const { data: winnersData, error: winnersError } = await supabase
+        .from('winners')
+        .select('id, user_id, prize_id, month, is_public')
+        .eq('is_public', true)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (winnersError) throw winnersError;
+      if (!winnersData || winnersData.length === 0) return [];
+
+      // Get user_ids and prize_ids
+      const userIds = winnersData.map(w => w.user_id);
+      const prizeIds = winnersData.filter(w => w.prize_id).map(w => w.prize_id);
+
+      // Fetch profiles
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', userIds);
+
+      // Fetch prizes
+      const { data: prizes } = await supabase
+        .from('prizes')
+        .select('id, name')
+        .in('id', prizeIds);
+
+      // Map data
+      return winnersData.map(winner => {
+        const profile = profiles?.find(p => p.user_id === winner.user_id);
+        const prize = prizes?.find(p => p.id === winner.prize_id);
+        return {
+          id: winner.id,
+          month: winner.month,
+          is_public: winner.is_public,
+          full_name: profile?.full_name || 'Lucky Winner',
+          prize_name: prize?.name || 'Lucky Draw Prize',
+        } as WinnerData;
+      });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <section className="py-20 bg-gradient-to-b from-background to-cream">
+        <div className="container flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </section>
+    );
+  }
+
+  if (winners.length === 0) {
+    return null;
+  }
+
   return (
     <section className="py-20 bg-gradient-to-b from-background to-cream relative overflow-hidden">
       {/* Background decoration */}
@@ -29,7 +98,7 @@ const WinnerBoard = () => {
         </motion.div>
 
         <div className="grid gap-4 max-w-4xl mx-auto">
-          {pastWinners.map((winner, index) => (
+          {winners.map((winner, index) => (
             <motion.div
               key={winner.id}
               initial={{ opacity: 0, x: -20 }}
@@ -54,24 +123,21 @@ const WinnerBoard = () => {
                     {/* Winner Info */}
                     <div className="flex-grow min-w-0">
                       <h3 className="font-display font-bold text-lg md:text-xl text-foreground truncate">
-                        {winner.name}
+                        {winner.full_name}
                       </h3>
                       <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {winner.city}
-                        </span>
-                        <span className="inline-flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {winner.month} {winner.year}
+                          {format(new Date(winner.month), "MMMM yyyy")}
                         </span>
                       </div>
                     </div>
 
                     {/* Prize */}
                     <div className="flex-shrink-0 text-right">
-                      <span className="inline-block px-4 py-2 rounded-xl bg-cream text-foreground font-semibold text-sm md:text-base border border-border/50">
-                        {winner.prize}
+                      <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cream text-foreground font-semibold text-sm md:text-base border border-border/50">
+                        <Gift className="w-4 h-4 text-primary" />
+                        {winner.prize_name}
                       </span>
                     </div>
                   </div>

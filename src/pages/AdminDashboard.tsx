@@ -196,15 +196,39 @@ const AdminDashboard = () => {
   const { data: winners = [] } = useQuery({
     queryKey: ['admin-winners'],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: winnersData } = await supabase
         .from('winners')
-        .select(`
-          *,
-          profiles:user_id (full_name),
-          prizes:prize_id (name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
-      return data || [];
+      
+      if (!winnersData || winnersData.length === 0) return [];
+
+      // Get user_ids and prize_ids
+      const userIds = winnersData.map(w => w.user_id);
+      const prizeIds = winnersData.filter(w => w.prize_id).map(w => w.prize_id);
+
+      // Fetch profiles
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', userIds);
+
+      // Fetch prizes
+      const { data: prizesData } = await supabase
+        .from('prizes')
+        .select('id, name')
+        .in('id', prizeIds);
+
+      // Map data
+      return winnersData.map(winner => {
+        const profile = profiles?.find(p => p.user_id === winner.user_id);
+        const prize = prizesData?.find(p => p.id === winner.prize_id);
+        return {
+          ...winner,
+          profiles: { full_name: profile?.full_name || 'Unknown User' },
+          prizes: { name: prize?.name || 'No Prize' },
+        };
+      });
     },
     enabled: isAdmin
   });
