@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { 
   Gift, 
   TrendingUp, 
@@ -24,9 +24,12 @@ import { format } from "date-fns";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, profile, isLoading: authLoading } = useAuth();
   const { data: entries, isLoading: entriesLoading } = useUserEntries();
-  const [codeDialogOpen, setCodeDialogOpen] = useState(false);
+  const [codeDialogOpen, setCodeDialogOpen] = useState(() => {
+    return location.state?.openCodeDialog || false;
+  });
 
   useEffect(() => {
     if (!authLoading && !user) {
