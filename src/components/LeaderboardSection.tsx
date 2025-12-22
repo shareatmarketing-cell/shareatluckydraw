@@ -33,15 +33,12 @@ const getRankColor = (index: number) => {
 const LeaderboardSection = () => {
   const { data: winners, isLoading } = usePublicWinners();
 
-  // Get previous month's winners
+  // Show all recent winners (not filtering by previous month since winners may have various dates)
   const now = new Date();
   const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const previousMonthStr = format(previousMonth, "yyyy-MM");
 
-  const previousMonthWinners = winners?.filter((winner) => {
-    const winnerMonth = format(new Date(winner.month), "yyyy-MM");
-    return winnerMonth === previousMonthStr;
-  }) || [];
+  // Simply display all public winners - the filtering was too strict
+  const displayedWinners = winners?.slice(0, 5) || [];
 
   return (
     <section className="py-20 bg-cream/30">
@@ -77,13 +74,13 @@ const LeaderboardSection = () => {
               <div className="p-8 text-center text-muted-foreground">
                 Loading winners...
               </div>
-            ) : previousMonthWinners.length === 0 ? (
+            ) : displayedWinners.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground">
-                No winners announced yet for {format(previousMonth, "MMMM yyyy")}
+                No winners announced yet
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {previousMonthWinners.map((winner, index) => (
+                {displayedWinners.map((winner, index) => (
                   <motion.div
                     key={winner.id}
                     initial={{ opacity: 0, x: -20 }}
