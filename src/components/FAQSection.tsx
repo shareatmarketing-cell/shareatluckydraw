@@ -59,11 +59,11 @@ const faqs: FAQ[] = [
 
 const FAQSection = () => {
   return (
-    <section id="faq" className="py-24 relative overflow-hidden">
+    <section id="faq" className="py-12 relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-cream/20 to-background" />
-      <div className="absolute top-20 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-20 left-0 w-80 h-80 bg-secondary/5 rounded-full blur-3xl" />
+      <div className="absolute top-10 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
+      <div className="absolute bottom-10 left-0 w-48 h-48 bg-secondary/5 rounded-full blur-3xl" />
 
       <div className="container px-4 relative z-10">
         {/* Header */}
@@ -71,20 +71,20 @@ const FAQSection = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-14"
+          className="text-center mb-8"
         >
           <motion.div
             initial={{ scale: 0 }}
             whileInView={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 200, delay: 0.1 }}
             viewport={{ once: true }}
-            className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-6"
+            className="inline-flex items-center gap-1.5 bg-primary/10 px-3 py-1.5 rounded-full mb-4"
           >
-            <HelpCircle className="w-5 h-5 text-primary" />
-            <span className="text-sm font-semibold text-primary">Got Questions?</span>
+            <HelpCircle className="w-4 h-4 text-primary" />
+            <span className="text-xs font-semibold text-primary">Got Questions?</span>
           </motion.div>
 
-          <h2 className="text-4xl md:text-5xl font-display font-bold mb-5">
+          <h2 className="text-2xl md:text-3xl font-display font-bold mb-3">
             Lucky Draw{" "}
             <span className="relative inline-block">
               <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
@@ -95,11 +95,11 @@ const FAQSection = () => {
                 whileInView={{ scaleX: 1 }}
                 transition={{ duration: 0.8, delay: 0.3 }}
                 viewport={{ once: true }}
-                className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-primary via-secondary to-accent rounded-full origin-left"
+                className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-secondary to-accent rounded-full origin-left"
               />
             </span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-sm text-muted-foreground max-w-xl mx-auto">
             Everything you need to know about winning amazing prizes with Shareat
           </p>
         </motion.div>
@@ -111,7 +111,7 @@ const FAQSection = () => {
           viewport={{ once: true }}
           className="max-w-3xl mx-auto"
         >
-          <Accordion type="single" collapsible className="space-y-4">
+          <Accordion type="single" collapsible className="space-y-2">
             {faqs.map((faq, index) => {
               const Icon = faq.icon;
               return (
@@ -120,23 +120,23 @@ const FAQSection = () => {
                   initial={{ opacity: 0, x: -20 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: index * 0.05 }}
+                  transition={{ delay: index * 0.03 }}
                 >
                   <AccordionItem
                     value={`item-${index}`}
-                    className="group bg-card border border-border/50 rounded-2xl px-6 overflow-hidden data-[state=open]:border-primary/30 data-[state=open]:shadow-lg data-[state=open]:shadow-primary/5 transition-all duration-300"
+                    className="group bg-card border border-border/50 rounded-xl px-4 overflow-hidden data-[state=open]:border-primary/30 data-[state=open]:shadow-md data-[state=open]:shadow-primary/5 transition-all duration-300"
                   >
-                    <AccordionTrigger className="text-left font-medium hover:no-underline py-5 gap-4">
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center shrink-0 group-data-[state=open]:from-primary group-data-[state=open]:to-primary/80 transition-all duration-300">
-                          <Icon className="w-5 h-5 text-primary group-data-[state=open]:text-primary-foreground transition-colors duration-300" />
+                    <AccordionTrigger className="text-left text-sm font-medium hover:no-underline py-3 gap-3">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center shrink-0 group-data-[state=open]:from-primary group-data-[state=open]:to-primary/80 transition-all duration-300">
+                          <Icon className="w-4 h-4 text-primary group-data-[state=open]:text-primary-foreground transition-colors duration-300" />
                         </div>
                         <span className="text-foreground group-hover:text-primary transition-colors">
                           {faq.question}
                         </span>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground pb-5 pl-14">
+                    <AccordionContent className="text-sm text-muted-foreground pb-3 pl-11">
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
