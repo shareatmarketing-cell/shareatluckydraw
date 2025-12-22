@@ -4,7 +4,7 @@ import { Gift, CheckCircle, AlertCircle, Loader2, Sparkles, LogIn } from "lucide
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/ClerkAuthContext";
 import { useSubmitCode, useHasEnteredThisMonth, useCurrentPrize } from "@/hooks/useDrawData";
 import { Link } from "react-router-dom";
 import confetti from "canvas-confetti";
