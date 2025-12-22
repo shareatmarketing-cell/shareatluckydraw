@@ -31,12 +31,14 @@ const AuthPage = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
-      <main className="flex-1 flex items-center justify-center px-4 py-16">
-        <SignIn
-          routing="hash"
-          forceRedirectUrl="/dashboard"
-          signUpUrl="/auth#signup"
-        />
+      <main className="flex-1 flex items-center justify-center px-4">
+        <div className="w-full max-w-md flex items-center justify-center">
+          <SignIn
+            routing="hash"
+            forceRedirectUrl="/dashboard"
+            signUpUrl="/auth#signup"
+          />
+        </div>
       </main>
 
       <Footer />
