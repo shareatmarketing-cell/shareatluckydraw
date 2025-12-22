@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { Gift, Star, Filter, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,9 +16,14 @@ import { format } from "date-fns";
 type FilterType = "all" | "exclusive" | "current";
 
 const Rewards = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const { data: currentPrize, isLoading: prizeLoading } = useCurrentPrize();
+
+  const handleEnterDraw = () => {
+    navigate("/dashboard", { state: { openCodeDialog: true } });
+  };
 
   // Fetch all active prizes
   const { data: allPrizes, isLoading: allPrizesLoading } = useQuery({
@@ -198,11 +204,9 @@ const Rewards = () => {
                         <Button 
                           variant="outline" 
                           className="w-full border-primary/30 text-primary hover:bg-primary/5"
-                          asChild
+                          onClick={handleEnterDraw}
                         >
-                          <a href="/enter">
-                            Enter Draw to Win
-                          </a>
+                          Enter Draw to Win
                         </Button>
                       </CardContent>
                     </Card>
@@ -255,11 +259,9 @@ const Rewards = () => {
                       variant="secondary" 
                       size="lg"
                       className="bg-card text-foreground hover:bg-card/90"
-                      asChild
+                      onClick={handleEnterDraw}
                     >
-                      <a href="/enter">
-                        Enter Now
-                      </a>
+                      Enter Now
                     </Button>
                   </div>
                 </CardContent>
