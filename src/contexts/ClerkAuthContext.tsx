@@ -41,38 +41,74 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
   } : null;
 
   useEffect(() => {
-    if (isLoaded) {
-      if (isSignedIn && clerkUser) {
-        // Fetch or create profile in Supabase
-        fetchOrCreateProfile(clerkUser.id);
-        checkAdminRole(clerkUser.id);
-      } else {
-        setProfile(null);
-        setIsAdmin(false);
+    const initAuth = async () => {
+      if (isLoaded) {
+        if (isSignedIn && clerkUser) {
+          // Fetch or create profile in Supabase
+          const profileData = await fetchOrCreateProfile(clerkUser.id);
+          // Check admin role using the profile's user_id (which might differ from Clerk ID)
+          if (profileData?.user_id) {
+            await checkAdminRole(profileData.user_id);
+          }
+        } else {
+          setProfile(null);
+          setIsAdmin(false);
+        }
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    }
+    };
+    initAuth();
   }, [isLoaded, isSignedIn, clerkUser]);
 
-  const fetchOrCreateProfile = async (userId: string) => {
-    // First try to find existing profile
+  const fetchOrCreateProfile = async (clerkUserId: string): Promise<Profile | null> => {
+    // First try to find existing profile by Clerk user ID
     const { data: existingProfile, error: fetchError } = await supabase
       .from('profiles')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', clerkUserId)
       .maybeSingle();
 
     if (!fetchError && existingProfile) {
       setProfile(existingProfile as Profile);
-      return;
+      return existingProfile as Profile;
     }
 
-    // If no profile exists, create one
+    // Check if there's an existing profile with matching name that needs migration
     if (!existingProfile && clerkUser) {
+      const userName = clerkUser.fullName || clerkUser.firstName;
+      if (userName) {
+        const { data: matchingProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('full_name', userName)
+          .maybeSingle();
+        
+        if (matchingProfile) {
+          // Found existing profile - update it to use Clerk ID and return it
+          // Also migrate the user role
+          const oldUserId = matchingProfile.user_id;
+          
+          await supabase
+            .from('profiles')
+            .update({ user_id: clerkUserId })
+            .eq('id', matchingProfile.id);
+          
+          await supabase
+            .from('user_roles')
+            .update({ user_id: clerkUserId })
+            .eq('user_id', oldUserId);
+          
+          const updatedProfile = { ...matchingProfile, user_id: clerkUserId };
+          setProfile(updatedProfile as Profile);
+          return updatedProfile as Profile;
+        }
+      }
+
+      // No existing profile found, create a new one
       const { data: newProfile, error: insertError } = await supabase
         .from('profiles')
         .insert({
-          user_id: userId,
+          user_id: clerkUserId,
           full_name: clerkUser.fullName || clerkUser.firstName || null,
           avatar_url: clerkUser.imageUrl || null,
         })
@@ -85,9 +121,12 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
         // Also create user role
         await supabase
           .from('user_roles')
-          .insert({ user_id: userId, role: 'user' });
+          .insert({ user_id: clerkUserId, role: 'user' });
+        
+        return newProfile as Profile;
       }
     }
+    return null;
   };
 
   const checkAdminRole = async (userId: string) => {
@@ -98,11 +137,7 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
       .eq('role', 'admin')
       .maybeSingle();
 
-    if (!error && data) {
-      setIsAdmin(true);
-    } else {
-      setIsAdmin(false);
-    }
+    setIsAdmin(!error && !!data);
   };
 
   const signOut = async () => {
