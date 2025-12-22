@@ -14,7 +14,8 @@ import {
   FileSpreadsheet,
   Pencil,
   X,
-  Trophy
+  Trophy,
+  Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,7 +119,7 @@ const AdminDashboard = () => {
     setEditingWinner(null);
   };
 
-  // Fetch all users with profiles
+  // Fetch all users with profiles and roles
   const { data: users = [] } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
@@ -129,13 +130,21 @@ const AdminDashboard = () => {
 
       if (profileError) throw profileError;
 
+      // Fetch roles for all users
+      const userIds = profiles?.map(p => p.user_id) || [];
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('*')
+        .in('user_id', userIds);
+
       return profiles?.map(p => ({
         id: p.id,
         email: p.full_name || 'Unknown',
         created_at: p.created_at,
         full_name: p.full_name,
         avatar_url: p.avatar_url,
-        user_id: p.user_id
+        user_id: p.user_id,
+        role: roles?.find(r => r.user_id === p.user_id)?.role || 'user'
       })) || [];
     },
     enabled: isAdmin
@@ -433,6 +442,40 @@ const AdminDashboard = () => {
     }
   });
 
+  // Update user role mutation
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ userId, newRole }: { userId: string; newRole: 'admin' | 'moderator' | 'user' }) => {
+      // Check if user already has a role entry
+      const { data: existingRole } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (existingRole) {
+        // Update existing role
+        const { error } = await supabase
+          .from('user_roles')
+          .update({ role: newRole })
+          .eq('user_id', userId);
+        if (error) throw error;
+      } else {
+        // Insert new role
+        const { error } = await supabase
+          .from('user_roles')
+          .insert({ user_id: userId, role: newRole });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast.success("Role updated successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update role");
+    }
+  });
+
   // Delete winner mutation
   const deleteWinnerMutation = useMutation({
     mutationFn: async (winnerId: string) => {
@@ -545,6 +588,7 @@ const AdminDashboard = () => {
 
   const tabs = [
     { id: "users", label: "Users", icon: Users },
+    { id: "roles", label: "Roles", icon: Shield },
     { id: "codes", label: "Codes", icon: QrCode },
     { id: "rewards", label: "Rewards", icon: Gift },
     { id: "winners", label: "Winners", icon: Trophy },
@@ -664,6 +708,98 @@ const AdminDashboard = () => {
                                 <Settings className="w-3 h-3 mr-1" />
                                 Manage
                               </Button>
+                            </td>
+                          </tr>
+                        ))}
+                        {filteredUsers.length === 0 && (
+                          <tr>
+                            <td colSpan={3} className="p-8 text-center text-muted-foreground">
+                              No users found
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {activeTab === "roles" && (
+            <motion.div
+              key="roles"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <Card className="border-0 shadow-soft">
+                <CardHeader className="flex flex-row items-center justify-between pb-4">
+                  <CardTitle className="text-lg font-semibold">Role Management</CardTitle>
+                  <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search users..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left p-3 font-medium text-muted-foreground">User</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">Current Role</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">Change Role</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredUsers.map((user: any) => (
+                          <tr key={user.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                            <td className="p-3">
+                              <div className="flex items-center gap-3">
+                                <Avatar className="w-9 h-9">
+                                  <AvatarImage src={user.avatar_url || undefined} />
+                                  <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                                    {user.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="font-medium text-foreground">
+                                  {user.full_name || 'Unknown User'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                                user.role === 'admin'
+                                  ? "bg-rose-100 text-rose-700"
+                                  : user.role === 'moderator'
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}>
+                                {user.role?.charAt(0).toUpperCase() + user.role?.slice(1) || 'User'}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              <Select
+                                value={user.role || 'user'}
+                                onValueChange={(value: 'admin' | 'moderator' | 'user') => 
+                                  updateRoleMutation.mutate({ userId: user.user_id, newRole: value })
+                                }
+                                disabled={updateRoleMutation.isPending}
+                              >
+                                <SelectTrigger className="w-32">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="user">User</SelectItem>
+                                  <SelectItem value="moderator">Moderator</SelectItem>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </td>
                           </tr>
                         ))}
