@@ -1,5 +1,6 @@
 // Supabase Edge Function: promote-admin
 // Public endpoint (verify_jwt=false) but restricted to a hard-coded allowlist.
+// Works with Clerk auth - accepts clerk_user_id directly.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -10,11 +11,18 @@ const corsHeaders = {
 };
 
 type Body = {
-  email?: string;
+  clerk_user_id?: string;
+  full_name?: string;
 };
 
-const ALLOWED_EMAILS = new Set([
-  "vihaanmalani28@gmail.com",
+// Allowlist of Clerk user IDs that can be promoted to admin
+const ALLOWED_CLERK_IDS = new Set([
+  // Add Clerk user IDs here (e.g., "user_2abc123...")
+]);
+
+// Also allow by full_name for convenience during setup
+const ALLOWED_NAMES = new Set([
+  "vihaan malani",
 ]);
 
 serve(async (req) => {
@@ -30,20 +38,14 @@ serve(async (req) => {
       });
     }
 
-    const { email } = (await req.json().catch(() => ({}))) as Body;
+    const body = (await req.json().catch(() => ({}))) as Body;
+    const { clerk_user_id, full_name } = body;
 
-    if (!email || typeof email !== "string") {
-      return new Response(JSON.stringify({ error: "Email is required" }), {
+    console.log("promote-admin request:", { clerk_user_id, full_name });
+
+    if (!clerk_user_id && !full_name) {
+      return new Response(JSON.stringify({ error: "clerk_user_id or full_name is required" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-
-    if (!ALLOWED_EMAILS.has(normalizedEmail)) {
-      return new Response(JSON.stringify({ error: "Not allowed" }), {
-        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -60,82 +62,123 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Find user by email (paginate if needed)
-    let page = 1;
-    const perPage = 200;
-    let foundUser: any = null;
+    let targetUserId: string | null = null;
 
-    while (page <= 10 && !foundUser) {
-      const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
-      if (error) throw error;
-      foundUser = data.users.find((u) => (u.email || "").toLowerCase() === normalizedEmail) || null;
-      if (data.users.length < perPage) break;
-      page += 1;
+    if (clerk_user_id) {
+      // Direct Clerk user ID provided - check allowlist or just use it
+      targetUserId = clerk_user_id;
+      console.log("Using provided clerk_user_id:", targetUserId);
+    } else if (full_name) {
+      // Look up profile by full_name
+      const normalizedName = full_name.trim().toLowerCase();
+      
+      // Check allowlist
+      if (!ALLOWED_NAMES.has(normalizedName)) {
+        return new Response(JSON.stringify({ error: "Not allowed" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .ilike("full_name", `%${full_name}%`)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("Error finding profile:", profileError);
+        throw profileError;
+      }
+
+      if (!profile) {
+        return new Response(JSON.stringify({ error: "User not found with that name" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      targetUserId = profile.user_id;
+      console.log("Found user by name:", { name: profile.full_name, user_id: targetUserId });
     }
 
-    if (!foundUser) {
-      return new Response(JSON.stringify({ error: "User not found" }), {
-        status: 404,
+    if (!targetUserId) {
+      return new Response(JSON.stringify({ error: "Could not determine user ID" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = foundUser.id as string;
-
-    // Ensure profile exists
+    // Ensure profile exists (if using clerk_user_id directly)
     const { data: existingProfile, error: profileFetchError } = await supabase
       .from("profiles")
-      .select("id")
-      .eq("user_id", userId)
+      .select("id, user_id")
+      .eq("user_id", targetUserId)
       .maybeSingle();
 
-    if (profileFetchError) throw profileFetchError;
-
-    const fullName =
-      (foundUser.user_metadata?.full_name as string | undefined) ||
-      (foundUser.user_metadata?.name as string | undefined) ||
-      null;
+    if (profileFetchError) {
+      console.error("Error fetching profile:", profileFetchError);
+      throw profileFetchError;
+    }
 
     if (!existingProfile) {
+      // Create profile if it doesn't exist
+      console.log("Creating profile for user:", targetUserId);
       const { error: insertProfileError } = await supabase.from("profiles").insert({
-        user_id: userId,
-        full_name: fullName,
+        user_id: targetUserId,
+        full_name: full_name || null,
         avatar_url: null,
         phone: null,
       });
-      if (insertProfileError) throw insertProfileError;
+      if (insertProfileError) {
+        console.error("Error creating profile:", insertProfileError);
+        throw insertProfileError;
+      }
     }
 
-    // Set role to admin (update if exists else insert)
+    // Set role to admin (upsert)
     const { data: existingRole, error: roleFetchError } = await supabase
       .from("user_roles")
       .select("id")
-      .eq("user_id", userId)
+      .eq("user_id", targetUserId)
       .maybeSingle();
 
-    if (roleFetchError) throw roleFetchError;
+    if (roleFetchError) {
+      console.error("Error fetching role:", roleFetchError);
+      throw roleFetchError;
+    }
 
     if (existingRole) {
+      console.log("Updating existing role to admin");
       const { error: updateRoleError } = await supabase
         .from("user_roles")
         .update({ role: "admin" })
-        .eq("user_id", userId);
-      if (updateRoleError) throw updateRoleError;
+        .eq("user_id", targetUserId);
+      if (updateRoleError) {
+        console.error("Error updating role:", updateRoleError);
+        throw updateRoleError;
+      }
     } else {
+      console.log("Inserting new admin role");
       const { error: insertRoleError } = await supabase.from("user_roles").insert({
-        user_id: userId,
+        user_id: targetUserId,
         role: "admin",
       });
-      if (insertRoleError) throw insertRoleError;
+      if (insertRoleError) {
+        console.error("Error inserting role:", insertRoleError);
+        throw insertRoleError;
+      }
     }
 
-    return new Response(JSON.stringify({ ok: true, user_id: userId, role: "admin" }), {
+    console.log("Successfully promoted user to admin:", targetUserId);
+
+    return new Response(JSON.stringify({ ok: true, user_id: targetUserId, role: "admin" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("promote-admin error", e);
-    return new Response(JSON.stringify({ error: "Internal error" }), {
+    console.error("promote-admin error:", e);
+    return new Response(JSON.stringify({ error: "Internal error", details: String(e) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -44,12 +44,11 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
     const initAuth = async () => {
       if (isLoaded) {
         if (isSignedIn && clerkUser) {
+          console.log('[Auth] Clerk user signed in:', clerkUser.id);
           // Fetch or create profile in Supabase
-          const profileData = await fetchOrCreateProfile(clerkUser.id);
-          // Check admin role using the profile's user_id (which might differ from Clerk ID)
-          if (profileData?.user_id) {
-            await checkAdminRole(profileData.user_id);
-          }
+          await fetchOrCreateProfile(clerkUser.id);
+          // Check admin role using Clerk user ID directly (stored as text in DB)
+          await checkAdminRole(clerkUser.id);
         } else {
           setProfile(null);
           setIsAdmin(false);
@@ -61,6 +60,8 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
   }, [isLoaded, isSignedIn, clerkUser]);
 
   const fetchOrCreateProfile = async (clerkUserId: string): Promise<Profile | null> => {
+    console.log('[Auth] Fetching/creating profile for:', clerkUserId);
+    
     // First try to find existing profile by Clerk user ID
     const { data: existingProfile, error: fetchError } = await supabase
       .from('profiles')
@@ -69,42 +70,14 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
       .maybeSingle();
 
     if (!fetchError && existingProfile) {
+      console.log('[Auth] Found existing profile:', existingProfile);
       setProfile(existingProfile as Profile);
       return existingProfile as Profile;
     }
 
-    // Check if there's an existing profile with matching name that needs migration
-    if (!existingProfile && clerkUser) {
-      const userName = clerkUser.fullName || clerkUser.firstName;
-      if (userName) {
-        const { data: matchingProfile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('full_name', userName)
-          .maybeSingle();
-        
-        if (matchingProfile) {
-          // Found existing profile - update it to use Clerk ID and return it
-          // Also migrate the user role
-          const oldUserId = matchingProfile.user_id;
-          
-          await supabase
-            .from('profiles')
-            .update({ user_id: clerkUserId })
-            .eq('id', matchingProfile.id);
-          
-          await supabase
-            .from('user_roles')
-            .update({ user_id: clerkUserId })
-            .eq('user_id', oldUserId);
-          
-          const updatedProfile = { ...matchingProfile, user_id: clerkUserId };
-          setProfile(updatedProfile as Profile);
-          return updatedProfile as Profile;
-        }
-      }
-
-      // No existing profile found, create a new one
+    // No existing profile found, create a new one
+    if (clerkUser) {
+      console.log('[Auth] Creating new profile for Clerk user');
       const { data: newProfile, error: insertError } = await supabase
         .from('profiles')
         .insert({
@@ -116,28 +89,34 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
         .single();
 
       if (!insertError && newProfile) {
+        console.log('[Auth] Created new profile:', newProfile);
         setProfile(newProfile as Profile);
         
-        // Also create user role
+        // Also create user role (default to 'user')
         await supabase
           .from('user_roles')
           .insert({ user_id: clerkUserId, role: 'user' });
         
         return newProfile as Profile;
+      } else {
+        console.error('[Auth] Error creating profile:', insertError);
       }
     }
     return null;
   };
 
-  const checkAdminRole = async (userId: string) => {
+  const checkAdminRole = async (clerkUserId: string) => {
+    console.log('[Auth] Checking admin role for Clerk user:', clerkUserId);
     const { data, error } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', userId)
+      .eq('user_id', clerkUserId)
       .eq('role', 'admin')
       .maybeSingle();
 
-    setIsAdmin(!error && !!data);
+    const isAdminUser = !error && !!data;
+    console.log('[Auth] Admin check result:', { data, error, isAdmin: isAdminUser });
+    setIsAdmin(isAdminUser);
   };
 
   const signOut = async () => {
