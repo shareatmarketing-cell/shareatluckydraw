@@ -75,6 +75,8 @@ const AdminDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [newCode, setNewCode] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const rewardImageInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const queryClient = useQueryClient();
 
   // Reward form state
@@ -490,6 +492,51 @@ const AdminDashboard = () => {
       toast.error(error.message || "Failed to delete winner");
     }
   });
+
+  const handleRewardImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `rewards/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('reward-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('reward-images')
+        .getPublicUrl(filePath);
+
+      setRewardForm({ ...rewardForm, image_url: publicUrl });
+      toast.success('Image uploaded successfully');
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast.error(error.message || 'Failed to upload image');
+    } finally {
+      setIsUploadingImage(false);
+      if (rewardImageInputRef.current) {
+        rewardImageInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleSaveReward = () => {
     if (!rewardForm.name.trim()) {
@@ -1189,13 +1236,62 @@ const AdminDashboard = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="image_url">Image URL</Label>
-                <Input
-                  id="image_url"
-                  placeholder="https://example.com/image.jpg"
-                  value={rewardForm.image_url}
-                  onChange={(e) => setRewardForm({ ...rewardForm, image_url: e.target.value })}
-                />
+                <Label htmlFor="image">Image</Label>
+                <div className="space-y-3">
+                  {rewardForm.image_url && (
+                    <div className="relative w-full h-32 rounded-lg overflow-hidden bg-muted">
+                      <img
+                        src={rewardForm.image_url}
+                        alt="Reward preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={() => setRewardForm({ ...rewardForm, image_url: '' })}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input
+                      type="file"
+                      ref={rewardImageInputRef}
+                      onChange={handleRewardImageUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => rewardImageInputRef.current?.click()}
+                      disabled={isUploadingImage}
+                      className="flex-1"
+                    >
+                      {isUploadingImage ? (
+                        <>
+                          <div className="animate-spin w-4 h-4 mr-2 border-2 border-primary border-t-transparent rounded-full" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Image
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="text-xs text-muted-foreground">Or enter URL manually:</div>
+                  <Input
+                    id="image_url"
+                    placeholder="https://example.com/image.jpg"
+                    value={rewardForm.image_url}
+                    onChange={(e) => setRewardForm({ ...rewardForm, image_url: e.target.value })}
+                  />
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="is_active">Active</Label>
