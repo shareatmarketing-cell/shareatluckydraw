@@ -62,16 +62,13 @@ const Navbar = () => {
               <>
                 {/* User Avatar with Clerk UserButton */}
                 <div className="flex items-center gap-2">
-                  <Link to="/admin/dashboard">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={!isAdmin}
-                      title={isAdmin ? "Open Admin Dashboard" : "Admin access required"}
-                    >
-                      Admin
-                    </Button>
-                  </Link>
+                  {isAdmin && (
+                    <Link to="/admin/dashboard">
+                      <Button variant="outline" size="sm">
+                        Admin
+                      </Button>
+                    </Link>
+                  )}
                   <UserButton 
                     afterSignOutUrl="/"
                     appearance={{
@@ -135,16 +132,13 @@ const Navbar = () => {
                     </Button>
                   </Link>
                   
-                  <Link to="/admin/dashboard" onClick={() => setIsOpen(false)}>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start gap-2 mt-2"
-                      disabled={!isAdmin}
-                      title={isAdmin ? "Open Admin Dashboard" : "Admin access required"}
-                    >
-                      Admin Panel
-                    </Button>
-                  </Link>
+                  {isAdmin && (
+                    <Link to="/admin/dashboard" onClick={() => setIsOpen(false)}>
+                      <Button variant="outline" className="w-full justify-start gap-2 mt-2">
+                        Admin Panel
+                      </Button>
+                    </Link>
+                  )}
                   
                   <Button 
                     variant="ghost" 
