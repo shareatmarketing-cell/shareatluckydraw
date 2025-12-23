@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth } from "@/contexts/ClerkAuthContext";
+import { useAuth as useClerkAuth } from '@clerk/clerk-react';
 import { useSubmitCode, useHasEnteredThisMonth, useCurrentPrize } from "@/hooks/useDrawData";
 import { Link } from "react-router-dom";
 import confetti from "canvas-confetti";
@@ -15,6 +16,7 @@ interface CodeEntryFormProps {
 
 const CodeEntryForm = ({ onSuccess }: CodeEntryFormProps) => {
   const { user } = useAuth();
+  const { getToken } = useClerkAuth();
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -53,7 +55,11 @@ const CodeEntryForm = ({ onSuccess }: CodeEntryFormProps) => {
     setErrorMessage("");
 
     try {
-      await submitCode.mutateAsync(code);
+      const token = await getToken();
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+      await submitCode.mutateAsync({ code, token });
       setStatus("success");
       triggerConfetti();
       onSuccess?.();

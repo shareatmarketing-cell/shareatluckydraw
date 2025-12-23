@@ -1,0 +1,162 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Get the authorization header (Clerk JWT)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Not authenticated' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Decode the JWT to get user info (Clerk JWT)
+    const token = authHeader.replace('Bearer ', '');
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create Supabase client with service role (bypasses RLS)
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const body = await req.json();
+    const { code } = body;
+
+    if (!code) {
+      return new Response(
+        JSON.stringify({ error: 'Code is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('[submit-code] User:', userId, 'Code:', code);
+
+    // Get current month as first day of month
+    const now = new Date();
+    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+
+    // Check if user already entered this month
+    const { data: existingEntry } = await supabase
+      .from('draw_entries')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('month', currentMonth)
+      .maybeSingle();
+
+    if (existingEntry) {
+      console.log('[submit-code] User already entered this month');
+      return new Response(
+        JSON.stringify({ error: "You have already entered this month's draw" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Find the code
+    const { data: codeData, error: codeError } = await supabase
+      .from('codes')
+      .select('*')
+      .eq('code', code.toUpperCase())
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (codeError) {
+      console.error('[submit-code] Code lookup error:', codeError);
+      return new Response(
+        JSON.stringify({ error: 'Error validating code' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!codeData) {
+      console.log('[submit-code] Invalid code');
+      return new Response(
+        JSON.stringify({ error: 'Invalid code. Please check and try again.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (codeData.is_used) {
+      console.log('[submit-code] Code already used');
+      return new Response(
+        JSON.stringify({ error: 'This code has already been used.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Mark code as used
+    const { error: updateError } = await supabase
+      .from('codes')
+      .update({
+        is_used: true,
+        used_by: userId,
+        used_at: new Date().toISOString(),
+      })
+      .eq('id', codeData.id);
+
+    if (updateError) {
+      console.error('[submit-code] Update code error:', updateError);
+      return new Response(
+        JSON.stringify({ error: 'Error processing code' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create draw entry
+    const { data: entry, error: entryError } = await supabase
+      .from('draw_entries')
+      .insert({
+        user_id: userId,
+        code_id: codeData.id,
+        month: currentMonth,
+      })
+      .select()
+      .single();
+
+    if (entryError) {
+      console.error('[submit-code] Create entry error:', entryError);
+      // Try to rollback the code update
+      await supabase
+        .from('codes')
+        .update({ is_used: false, used_by: null, used_at: null })
+        .eq('id', codeData.id);
+
+      return new Response(
+        JSON.stringify({ error: 'Error creating draw entry' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('[submit-code] Successfully created entry:', entry.id);
+    return new Response(
+      JSON.stringify({ success: true, data: entry }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: unknown) {
+    console.error('[submit-code] Error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return new Response(
+      JSON.stringify({ error: message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

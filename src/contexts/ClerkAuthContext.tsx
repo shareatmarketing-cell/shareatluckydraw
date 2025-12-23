@@ -63,45 +63,41 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchOrCreateProfile = async (clerkUserId: string): Promise<Profile | null> => {
     console.log('[Auth] Fetching/creating profile for:', clerkUserId);
     
-    // First try to find existing profile by Clerk user ID
-    const { data: existingProfile, error: fetchError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', clerkUserId)
-      .maybeSingle();
-
-    if (!fetchError && existingProfile) {
-      console.log('[Auth] Found existing profile:', existingProfile);
-      setProfile(existingProfile as Profile);
-      return existingProfile as Profile;
-    }
-
-    // No existing profile found, create a new one
-    if (clerkUser) {
-      console.log('[Auth] Creating new profile for Clerk user');
-      const { data: newProfile, error: insertError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: clerkUserId,
-          full_name: clerkUser.fullName || clerkUser.firstName || null,
-          avatar_url: clerkUser.imageUrl || null,
-        })
-        .select()
-        .single();
-
-      if (!insertError && newProfile) {
-        console.log('[Auth] Created new profile:', newProfile);
-        setProfile(newProfile as Profile);
-        
-        // Also create user role (default to 'user')
-        await supabase
-          .from('user_roles')
-          .insert({ user_id: clerkUserId, role: 'user' });
-        
-        return newProfile as Profile;
-      } else {
-        console.error('[Auth] Error creating profile:', insertError);
+    try {
+      const token = await getToken();
+      if (!token) {
+        console.error('[Auth] No token available');
+        return null;
       }
+
+      const { data, error } = await supabase.functions.invoke('manage-profiles', {
+        body: {
+          action: 'fetch_or_create',
+          full_name: clerkUser?.fullName || clerkUser?.firstName || null,
+          avatar_url: clerkUser?.imageUrl || null,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (error) {
+        console.error('[Auth] Error fetching/creating profile:', error);
+        return null;
+      }
+
+      if (data?.error) {
+        console.error('[Auth] Profile error:', data.error);
+        return null;
+      }
+
+      if (data?.data) {
+        console.log('[Auth] Profile:', data.data, data.created ? '(created)' : '(existing)');
+        setProfile(data.data as Profile);
+        return data.data as Profile;
+      }
+    } catch (e) {
+      console.error('[Auth] fetchOrCreateProfile error:', e);
     }
     return null;
   };
@@ -141,16 +137,31 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return { error: new Error('Not authenticated') };
 
-    const { error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('user_id', user.id);
+    try {
+      const token = await getToken();
+      if (!token) return { error: new Error('Not authenticated') };
 
-    if (!error) {
-      await fetchOrCreateProfile(user.id);
+      const { data, error } = await supabase.functions.invoke('manage-profiles', {
+        body: {
+          action: 'update',
+          ...updates,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (error) return { error: error as Error };
+      if (data?.error) return { error: new Error(data.error) };
+
+      if (data?.data) {
+        setProfile(data.data as Profile);
+      }
+
+      return { error: null };
+    } catch (e) {
+      return { error: e as Error };
     }
-
-    return { error: error as Error | null };
   };
 
   return (
