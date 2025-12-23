@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.manage-winners]
 verify_jwt = false
+
+[functions.get-admin-users]
+verify_jwt = false
