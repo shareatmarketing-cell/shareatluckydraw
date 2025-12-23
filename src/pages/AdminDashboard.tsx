@@ -41,6 +41,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -112,6 +114,8 @@ const AdminDashboard = () => {
   const [winnerCount, setWinnerCount] = useState(1);
   const [selectedWinners, setSelectedWinners] = useState<any[]>([]);
   const [isPickingWinners, setIsPickingWinners] = useState(false);
+  const [confirmSaveWinnersOpen, setConfirmSaveWinnersOpen] = useState(false);
+  const [isSavingWinners, setIsSavingWinners] = useState(false);
 
   const resetRewardForm = () => {
     setRewardForm({
@@ -1355,7 +1359,7 @@ const AdminDashboard = () => {
                         </div>
                       ))}
                     </div>
-                    <div className="mt-4 pt-4 border-t">
+                    <div className="mt-4 pt-4 border-t flex flex-wrap gap-3">
                       <Button
                         variant="outline"
                         onClick={() => {
@@ -1382,6 +1386,13 @@ const AdminDashboard = () => {
                       >
                         <Download className="w-4 h-4" />
                         Download Winners CSV
+                      </Button>
+                      <Button
+                        onClick={() => setConfirmSaveWinnersOpen(true)}
+                        className="gap-2"
+                      >
+                        <Trophy className="w-4 h-4" />
+                        Save to Winners Table
                       </Button>
                     </div>
                   </CardContent>
@@ -1753,6 +1764,100 @@ const AdminDashboard = () => {
                 {editingWinner ? "Update" : "Add"} Winner
               </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirm Save Winners Dialog */}
+        <Dialog open={confirmSaveWinnersOpen} onOpenChange={setConfirmSaveWinnersOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-primary" />
+                Confirm Save Winners
+              </DialogTitle>
+              <DialogDescription>
+                Are you sure you want to add {selectedWinners.length} winner(s) to the Winners table for {format(new Date(drawMonth), 'MMMM yyyy')}?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-48 overflow-y-auto my-4">
+              <div className="space-y-2">
+                {selectedWinners.map((winner: any, index: number) => (
+                  <div key={winner.user_id} className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+                    <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+                      {index + 1}
+                    </span>
+                    <span className="text-sm font-medium">{winner.full_name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button 
+                variant="outline" 
+                onClick={() => setConfirmSaveWinnersOpen(false)}
+                disabled={isSavingWinners}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  setIsSavingWinners(true);
+                  try {
+                    const token = await getToken();
+                    let successCount = 0;
+                    
+                    for (const winner of selectedWinners) {
+                      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-winners`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({
+                          action: 'create',
+                          user_id: winner.user_id,
+                          prize_id: null,
+                          month: drawMonth,
+                          is_public: true,
+                        }),
+                      });
+                      
+                      if (response.ok) {
+                        successCount++;
+                      }
+                    }
+                    
+                    if (successCount === selectedWinners.length) {
+                      toast.success(`Successfully added ${successCount} winner(s) to the Winners table!`);
+                    } else {
+                      toast.warning(`Added ${successCount} of ${selectedWinners.length} winners. Some may already exist.`);
+                    }
+                    
+                    queryClient.invalidateQueries({ queryKey: ['admin-winners'] });
+                    setConfirmSaveWinnersOpen(false);
+                    setSelectedWinners([]);
+                  } catch (error: any) {
+                    toast.error(error.message || 'Failed to save winners');
+                  } finally {
+                    setIsSavingWinners(false);
+                  }
+                }}
+                disabled={isSavingWinners}
+                className="gap-2"
+              >
+                {isSavingWinners ? (
+                  <>
+                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Trophy className="w-4 h-4" />
+                    Confirm & Save
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </main>
