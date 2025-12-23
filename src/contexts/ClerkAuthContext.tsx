@@ -29,6 +29,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
   const { user: clerkUser, isLoaded, isSignedIn } = useUser();
   const { signOut: clerkSignOut } = useClerk();
+  const { getToken } = useClerkAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,17 +107,29 @@ export const ClerkAuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const checkAdminRole = async (clerkUserId: string) => {
-    console.log('[Auth] Checking admin role for Clerk user:', clerkUserId);
-    const { data, error } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', clerkUserId)
-      .eq('role', 'admin')
-      .maybeSingle();
+    try {
+      const token = await getToken();
+      if (!token) {
+        setIsAdmin(false);
+        return;
+      }
 
-    const isAdminUser = !error && !!data;
-    console.log('[Auth] Admin check result:', { data, error, isAdmin: isAdminUser });
-    setIsAdmin(isAdminUser);
+      const { data, error } = await supabase.functions.invoke('get-user-roles', {
+        body: { token },
+      });
+
+      if (error) {
+        console.error('[Auth] Failed to fetch roles:', error);
+        setIsAdmin(false);
+        return;
+      }
+
+      const roles = (data?.roles ?? []) as string[];
+      setIsAdmin(roles.includes('admin'));
+    } catch (e) {
+      console.error('[Auth] Failed to check admin role:', e);
+      setIsAdmin(false);
+    }
   };
 
   const signOut = async () => {
