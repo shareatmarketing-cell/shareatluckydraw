@@ -549,21 +549,26 @@ const AdminDashboard = () => {
 
     setIsUploadingImage(true);
     try {
+      const token = await getToken();
       const fileExt = file.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `rewards/${fileName}`;
+      const fileName = `rewards/${crypto.randomUUID()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('reward-images')
-        .upload(filePath, file);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileName', fileName);
 
-      if (uploadError) throw uploadError;
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-reward-image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('reward-images')
-        .getPublicUrl(filePath);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Upload failed');
 
-      setRewardForm({ ...rewardForm, image_url: publicUrl });
+      setRewardForm({ ...rewardForm, image_url: data.url });
       toast.success('Image uploaded successfully');
     } catch (error: any) {
       console.error('Upload error:', error);
