@@ -469,13 +469,24 @@ const AdminDashboard = () => {
   // Add winner mutation
   const addWinnerMutation = useMutation({
     mutationFn: async (winner: WinnerForm) => {
-      const { error } = await supabase.from('winners').insert({
-        user_id: winner.user_id,
-        prize_id: winner.prize_id || null,
-        month: winner.month,
-        is_public: winner.is_public,
+      const token = await getToken();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-winners`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: 'create',
+          user_id: winner.user_id,
+          prize_id: winner.prize_id || null,
+          month: winner.month,
+          is_public: winner.is_public,
+        }),
       });
-      if (error) throw error;
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to add winner');
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-winners'] });
@@ -491,13 +502,25 @@ const AdminDashboard = () => {
   // Update winner mutation
   const updateWinnerMutation = useMutation({
     mutationFn: async ({ id, winner }: { id: string; winner: WinnerForm }) => {
-      const { error } = await supabase.from('winners').update({
-        user_id: winner.user_id,
-        prize_id: winner.prize_id || null,
-        month: winner.month,
-        is_public: winner.is_public,
-      }).eq('id', id);
-      if (error) throw error;
+      const token = await getToken();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-winners`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: 'update',
+          id,
+          user_id: winner.user_id,
+          prize_id: winner.prize_id || null,
+          month: winner.month,
+          is_public: winner.is_public,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to update winner');
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-winners'] });
