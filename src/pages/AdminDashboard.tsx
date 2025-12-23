@@ -250,8 +250,18 @@ const AdminDashboard = () => {
   // Add single code mutation
   const addCodeMutation = useMutation({
     mutationFn: async (code: string) => {
-      const { error } = await supabase.from('codes').insert({ code: code.trim() });
-      if (error) throw error;
+      const token = await getToken();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-codes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action: 'create', code: code.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to add code');
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-codes'] });
@@ -267,11 +277,18 @@ const AdminDashboard = () => {
   // Add bulk codes mutation
   const addBulkCodesMutation = useMutation({
     mutationFn: async (codes: string[]) => {
-      const { error } = await supabase.from('codes').insert(
-        codes.map(code => ({ code: code.trim() }))
-      );
-      if (error) throw error;
-      return codes.length;
+      const token = await getToken();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-codes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action: 'bulk_create', codes }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to add codes');
+      return data.count;
     },
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ['admin-codes'] });
@@ -286,8 +303,18 @@ const AdminDashboard = () => {
   // Delete code mutation
   const deleteCodeMutation = useMutation({
     mutationFn: async (codeId: string) => {
-      const { error } = await supabase.from('codes').delete().eq('id', codeId);
-      if (error) throw error;
+      const token = await getToken();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-codes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action: 'delete', id: codeId }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to delete code');
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-codes'] });
