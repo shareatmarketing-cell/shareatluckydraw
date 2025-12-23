@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.upload-reward-image]
 verify_jwt = false
+
+[functions.manage-codes]
+verify_jwt = false
