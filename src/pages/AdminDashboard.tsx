@@ -128,29 +128,16 @@ const AdminDashboard = () => {
   const { data: users = [] } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (profileError) throw profileError;
-
-      // Fetch roles for all users
-      const userIds = profiles?.map(p => p.user_id) || [];
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('*')
-        .in('user_id', userIds);
-
-      return profiles?.map(p => ({
-        id: p.id,
-        email: p.full_name || 'Unknown',
-        created_at: p.created_at,
-        full_name: p.full_name,
-        avatar_url: p.avatar_url,
-        user_id: p.user_id,
-        role: roles?.find(r => r.user_id === p.user_id)?.role || 'user'
-      })) || [];
+      const token = await getToken();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-admin-users`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to fetch users');
+      return data.data || [];
     },
     enabled: isAdmin
   });
