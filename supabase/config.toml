@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.manage-profiles]
 verify_jwt = false
+
+[functions.manage-draw]
+verify_jwt = false
