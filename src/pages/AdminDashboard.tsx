@@ -38,6 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -1245,10 +1246,11 @@ const AdminDashboard = () => {
 
         {/* Reward Dialog */}
         <Dialog open={rewardDialogOpen} onOpenChange={(open) => { setRewardDialogOpen(open); if (!open) resetRewardForm(); }}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>{editingReward ? "Edit Reward" : "Add New Reward"}</DialogTitle>
             </DialogHeader>
+            <ScrollArea className="flex-1 max-h-[60vh] pr-4">
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
@@ -1345,7 +1347,8 @@ const AdminDashboard = () => {
                 />
               </div>
             </div>
-            <div className="flex gap-2 justify-end">
+            </ScrollArea>
+            <div className="flex gap-2 justify-end pt-4 border-t">
               <Button variant="outline" onClick={() => { setRewardDialogOpen(false); resetRewardForm(); }}>
                 Cancel
               </Button>
