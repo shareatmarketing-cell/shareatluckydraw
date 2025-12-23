@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useAuth as useClerkAuth } from "@clerk/clerk-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Users, 
@@ -71,6 +72,7 @@ interface WinnerForm {
 
 const AdminDashboard = () => {
   const { isAdmin, isLoading: authLoading } = useAuth();
+  const { getToken } = useClerkAuth();
   const [activeTab, setActiveTab] = useState("users");
   const [searchQuery, setSearchQuery] = useState("");
   const [newCode, setNewCode] = useState("");
@@ -339,14 +341,25 @@ const AdminDashboard = () => {
   // Add reward mutation
   const addRewardMutation = useMutation({
     mutationFn: async (reward: RewardForm) => {
-      const { error } = await supabase.from('prizes').insert({
-        name: reward.name,
-        description: reward.description,
-        month: reward.month,
-        image_url: reward.image_url || null,
-        is_active: reward.is_active,
+      const token = await getToken();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-prizes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: 'create',
+          name: reward.name,
+          description: reward.description,
+          month: reward.month,
+          image_url: reward.image_url || null,
+          is_active: reward.is_active,
+        }),
       });
-      if (error) throw error;
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to add reward');
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-prizes'] });
@@ -363,14 +376,26 @@ const AdminDashboard = () => {
   // Update reward mutation
   const updateRewardMutation = useMutation({
     mutationFn: async ({ id, reward }: { id: string; reward: RewardForm }) => {
-      const { error } = await supabase.from('prizes').update({
-        name: reward.name,
-        description: reward.description,
-        month: reward.month,
-        image_url: reward.image_url || null,
-        is_active: reward.is_active,
-      }).eq('id', id);
-      if (error) throw error;
+      const token = await getToken();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-prizes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: 'update',
+          id,
+          name: reward.name,
+          description: reward.description,
+          month: reward.month,
+          image_url: reward.image_url || null,
+          is_active: reward.is_active,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to update reward');
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-prizes'] });
@@ -387,8 +412,21 @@ const AdminDashboard = () => {
   // Delete reward mutation
   const deleteRewardMutation = useMutation({
     mutationFn: async (rewardId: string) => {
-      const { error } = await supabase.from('prizes').delete().eq('id', rewardId);
-      if (error) throw error;
+      const token = await getToken();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-prizes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: 'delete',
+          id: rewardId,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to delete reward');
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-prizes'] });
