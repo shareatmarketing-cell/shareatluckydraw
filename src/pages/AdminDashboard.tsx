@@ -16,7 +16,11 @@ import {
   Pencil,
   X,
   Trophy,
-  Shield
+  Shield,
+  Dices,
+  Download,
+  RotateCcw,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,6 +106,12 @@ const AdminDashboard = () => {
     month: format(new Date(), "yyyy-MM-dd"),
     is_public: true,
   });
+
+  // Draw state
+  const [drawMonth, setDrawMonth] = useState(format(new Date(), "yyyy-MM") + "-01");
+  const [winnerCount, setWinnerCount] = useState(1);
+  const [selectedWinners, setSelectedWinners] = useState<any[]>([]);
+  const [isPickingWinners, setIsPickingWinners] = useState(false);
 
   const resetRewardForm = () => {
     setRewardForm({
@@ -230,6 +240,26 @@ const AdminDashboard = () => {
           prizes: { name: prize?.name || 'No Prize' },
         };
       });
+    },
+    enabled: isAdmin
+  });
+
+  // Fetch draw entries for current month
+  const { data: drawEntries = [], refetch: refetchDrawEntries } = useQuery({
+    queryKey: ['admin-draw-entries', drawMonth],
+    queryFn: async () => {
+      const token = await getToken();
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-draw`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action: 'get_entries', month: drawMonth }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to fetch draw entries');
+      return data.data || [];
     },
     enabled: isAdmin
   });
@@ -710,6 +740,7 @@ const AdminDashboard = () => {
     { id: "roles", label: "Roles", icon: Shield },
     { id: "codes", label: "Codes", icon: QrCode },
     { id: "rewards", label: "Rewards", icon: Gift },
+    { id: "draw", label: "Draw", icon: Dices },
     { id: "winners", label: "Winners", icon: Trophy },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
   ];
@@ -1146,6 +1177,266 @@ const AdminDashboard = () => {
                         No rewards found. Add your first reward.
                       </div>
                     )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {activeTab === "draw" && (
+            <motion.div
+              key="draw"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
+            >
+              {/* Draw Controls */}
+              <Card className="border-0 shadow-soft">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold">Lucky Draw Management</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Month Selector */}
+                  <div className="flex flex-wrap gap-4 items-end">
+                    <div className="space-y-2">
+                      <Label>Select Month</Label>
+                      <Input
+                        type="month"
+                        value={drawMonth.slice(0, 7)}
+                        onChange={(e) => {
+                          setDrawMonth(e.target.value + "-01");
+                          setSelectedWinners([]);
+                        }}
+                        className="w-48"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Number of Winners</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={winnerCount}
+                        onChange={(e) => setWinnerCount(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-32"
+                      />
+                    </div>
+                    <Button
+                      onClick={async () => {
+                        setIsPickingWinners(true);
+                        try {
+                          const token = await getToken();
+                          const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-draw`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({ action: 'pick_winners', month: drawMonth, count: winnerCount }),
+                          });
+                          const data = await response.json();
+                          if (!response.ok) throw new Error(data.error || 'Failed to pick winners');
+                          setSelectedWinners(data.data || []);
+                          toast.success(`${data.data?.length || 0} winner(s) selected!`);
+                        } catch (error: any) {
+                          toast.error(error.message || 'Failed to pick winners');
+                        } finally {
+                          setIsPickingWinners(false);
+                        }
+                      }}
+                      disabled={isPickingWinners || drawEntries.length === 0}
+                      className="gap-2"
+                    >
+                      {isPickingWinners ? (
+                        <>
+                          <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                          Picking...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          Pick Random Winners
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (drawEntries.length === 0) {
+                          toast.error('No entries to download');
+                          return;
+                        }
+                        const csvContent = [
+                          ['Name', 'Phone', 'Code', 'Entry Date'].join(','),
+                          ...drawEntries.map((entry: any) => [
+                            `"${entry.full_name || ''}"`,
+                            `"${entry.phone || ''}"`,
+                            `"${entry.code || ''}"`,
+                            `"${format(new Date(entry.created_at), 'yyyy-MM-dd HH:mm')}"`,
+                          ].join(','))
+                        ].join('\n');
+                        
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.setAttribute('href', url);
+                        link.setAttribute('download', `draw-entries-${drawMonth.slice(0, 7)}.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        toast.success('CSV downloaded');
+                      }}
+                      disabled={drawEntries.length === 0}
+                      className="gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download Entries CSV
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={async () => {
+                        if (!confirm('Are you sure you want to reset all draw entries for this month? This action cannot be undone.')) return;
+                        try {
+                          const token = await getToken();
+                          const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-draw`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({ action: 'reset_entries', month: drawMonth }),
+                          });
+                          const data = await response.json();
+                          if (!response.ok) throw new Error(data.error || 'Failed to reset entries');
+                          toast.success('Draw entries reset successfully');
+                          refetchDrawEntries();
+                          setSelectedWinners([]);
+                          queryClient.invalidateQueries({ queryKey: ['admin-codes'] });
+                          queryClient.invalidateQueries({ queryKey: ['admin-codes-stats'] });
+                        } catch (error: any) {
+                          toast.error(error.message || 'Failed to reset entries');
+                        }
+                      }}
+                      disabled={drawEntries.length === 0}
+                      className="gap-2"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Reset Draw Entries
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Selected Winners */}
+              {selectedWinners.length > 0 && (
+                <Card className="border-0 shadow-soft border-l-4 border-l-primary">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                      <Trophy className="w-5 h-5 text-primary" />
+                      Selected Winners ({selectedWinners.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      {selectedWinners.map((winner: any, index: number) => (
+                        <div key={winner.user_id} className="flex items-center gap-3 p-3 bg-primary/5 rounded-lg border border-primary/10">
+                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">{winner.full_name}</p>
+                            <p className="text-sm text-muted-foreground">{winner.phone || 'No phone'}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 pt-4 border-t">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const csvContent = [
+                            ['Rank', 'Name', 'Phone'].join(','),
+                            ...selectedWinners.map((winner: any, index: number) => [
+                              index + 1,
+                              `"${winner.full_name || ''}"`,
+                              `"${winner.phone || ''}"`,
+                            ].join(','))
+                          ].join('\n');
+                          
+                          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.setAttribute('href', url);
+                          link.setAttribute('download', `winners-${drawMonth.slice(0, 7)}.csv`);
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          toast.success('Winners CSV downloaded');
+                        }}
+                        className="gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download Winners CSV
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Draw Entries Table */}
+              <Card className="border-0 shadow-soft">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold">
+                    Draw Entries for {format(new Date(drawMonth), 'MMMM yyyy')} ({drawEntries.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left p-3 font-medium text-muted-foreground">#</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">Name</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">Phone</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">Code Used</th>
+                          <th className="text-left p-3 font-medium text-muted-foreground">Entry Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {drawEntries.map((entry: any, index: number) => (
+                          <tr key={entry.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                            <td className="p-3 text-muted-foreground">{index + 1}</td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <span className="text-sm font-medium text-primary">
+                                    {entry.full_name?.charAt(0)?.toUpperCase() || 'U'}
+                                  </span>
+                                </div>
+                                <span className="font-medium text-foreground">{entry.full_name || 'Unknown'}</span>
+                              </div>
+                            </td>
+                            <td className="p-3 text-muted-foreground">{entry.phone || '-'}</td>
+                            <td className="p-3 font-mono text-sm text-foreground">{entry.code}</td>
+                            <td className="p-3 text-muted-foreground">
+                              {format(new Date(entry.created_at), 'MMM dd, yyyy HH:mm')}
+                            </td>
+                          </tr>
+                        ))}
+                        {drawEntries.length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                              No entries found for {format(new Date(drawMonth), 'MMMM yyyy')}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </CardContent>
               </Card>
