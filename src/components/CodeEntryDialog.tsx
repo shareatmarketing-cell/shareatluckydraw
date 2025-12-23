@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Ticket, X, Loader2 } from "lucide-react";
+import { Ticket, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useSubmitCode } from "@/hooks/useDrawData";
+import { useAuth as useClerkAuth } from '@clerk/clerk-react';
 import confetti from "canvas-confetti";
 
 interface CodeEntryDialogProps {
@@ -21,6 +22,7 @@ const CodeEntryDialog = ({ open, onOpenChange }: CodeEntryDialogProps) => {
   const [code, setCode] = useState("");
   const { toast } = useToast();
   const submitCode = useSubmitCode();
+  const { getToken } = useClerkAuth();
 
   const handleSubmit = async () => {
     if (!code.trim()) {
@@ -32,7 +34,17 @@ const CodeEntryDialog = ({ open, onOpenChange }: CodeEntryDialogProps) => {
       return;
     }
 
-    submitCode.mutate(code.trim().toUpperCase(), {
+    const token = await getToken();
+    if (!token) {
+      toast({
+        title: "Error",
+        description: "Please log in to redeem a code",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    submitCode.mutate({ code: code.trim().toUpperCase(), token }, {
       onSuccess: () => {
         confetti({
           particleCount: 100,

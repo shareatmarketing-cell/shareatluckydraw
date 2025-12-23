@@ -167,67 +167,25 @@ export const usePublicWinners = () => {
   });
 };
 
-// Hook to submit a code entry
+// Hook to submit a code entry via edge function
 export const useSubmitCode = () => {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (code: string) => {
-      if (!user) throw new Error('Not authenticated');
+    mutationFn: async ({ code, token }: { code: string; token: string }) => {
+      if (!token) throw new Error('Not authenticated');
       
-      const currentMonth = getCurrentMonth();
+      const { data, error } = await supabase.functions.invoke('submit-code', {
+        body: { code },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
       
-      // Check if user already entered this month
-      const { data: existingEntry } = await supabase
-        .from('draw_entries')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('month', currentMonth)
-        .maybeSingle();
-        
-      if (existingEntry) {
-        throw new Error('You have already entered this month\'s draw');
-      }
-      
-      // Find the code
-      const { data: codeData, error: codeError } = await supabase
-        .from('codes')
-        .select('*')
-        .eq('code', code.toUpperCase())
-        .eq('is_active', true)
-        .maybeSingle();
-        
-      if (codeError) throw codeError;
-      if (!codeData) throw new Error('Invalid code. Please check and try again.');
-      if (codeData.is_used) throw new Error('This code has already been used.');
-      
-      // Mark code as used
-      const { error: updateError } = await supabase
-        .from('codes')
-        .update({
-          is_used: true,
-          used_by: user.id,
-          used_at: new Date().toISOString(),
-        })
-        .eq('id', codeData.id);
-        
-      if (updateError) throw updateError;
-      
-      // Create draw entry
-      const { data: entry, error: entryError } = await supabase
-        .from('draw_entries')
-        .insert({
-          user_id: user.id,
-          code_id: codeData.id,
-          month: currentMonth,
-        })
-        .select()
-        .single();
-        
-      if (entryError) throw entryError;
-      
-      return entry;
+      return data.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-entries'] });
