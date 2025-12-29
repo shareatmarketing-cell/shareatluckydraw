@@ -29,3 +29,9 @@ verify_jwt = false
 
 [functions.upload-reward-image]
 verify_jwt = false
+
+[functions.get-user-data]
+verify_jwt = false
+
+[functions.get-public-data]
+verify_jwt = false
