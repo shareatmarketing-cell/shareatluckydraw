@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyClerkJwt, extractToken } from "../_shared/verify-clerk-jwt.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,24 +12,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const adminUserId = payload.sub;
-
-    if (!adminUserId) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Verify Clerk JWT with cryptographic signature validation
+    const token = extractToken(req.headers.get('Authorization'));
+    const { userId: adminUserId } = await verifyClerkJwt(token);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -52,6 +38,22 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const { user_id, new_role } = body;
+
+    // Validate inputs
+    if (!user_id || typeof user_id !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid user_id' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const validRoles = ['admin', 'moderator', 'user'];
+    if (!new_role || !validRoles.includes(new_role)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid role. Must be: admin, moderator, or user' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     console.log('Updating role for user:', user_id, 'to:', new_role, 'by admin:', adminUserId);
 
@@ -98,9 +100,10 @@ Deno.serve(async (req) => {
   } catch (error: unknown) {
     console.error('Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
+    const status = message.includes('authorization') || message.includes('token') || message.includes('issuer') || message.includes('subject') ? 401 : 500;
     return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: status === 401 ? 'Authentication failed' : message }),
+      { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

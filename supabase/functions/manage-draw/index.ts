@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyClerkJwt, extractToken } from "../_shared/verify-clerk-jwt.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,24 +12,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const userId = payload.sub;
-
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Verify Clerk JWT with cryptographic signature validation
+    const token = extractToken(req.headers.get('Authorization'));
+    const { userId } = await verifyClerkJwt(token);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -157,10 +143,10 @@ Deno.serve(async (req) => {
           .select('user_id, full_name, phone')
           .in('user_id', selectedUserIds);
 
-        const winners = selectedUserIds.map(userId => {
-          const profile = profiles?.find(p => p.user_id === userId);
+        const winners = selectedUserIds.map(usrId => {
+          const profile = profiles?.find(p => p.user_id === usrId);
           return {
-            user_id: userId,
+            user_id: usrId,
             full_name: profile?.full_name || 'Unknown',
             phone: profile?.phone || null,
           };
@@ -179,7 +165,7 @@ Deno.serve(async (req) => {
         console.log('Resetting entries for month:', targetMonth);
 
         // Delete all draw entries for the month
-        const { error: deleteError, count } = await supabase
+        const { error: deleteError } = await supabase
           .from('draw_entries')
           .delete()
           .eq('month', targetMonth);
@@ -193,8 +179,7 @@ Deno.serve(async (req) => {
         }
 
         // Also reset the codes that were used in this month's entries
-        // First get the code IDs from draw entries (but they're deleted now, so we need to reset all used codes for this month)
-        // We'll reset codes based on used_at date
+        // Reset codes based on used_at date
         const monthStart = new Date(targetMonth);
         const monthEnd = new Date(monthStart);
         monthEnd.setMonth(monthEnd.getMonth() + 1);
@@ -225,9 +210,10 @@ Deno.serve(async (req) => {
   } catch (error: unknown) {
     console.error('Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
+    const status = message.includes('authorization') || message.includes('token') || message.includes('issuer') || message.includes('subject') ? 401 : 500;
     return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: status === 401 ? 'Authentication failed' : message }),
+      { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

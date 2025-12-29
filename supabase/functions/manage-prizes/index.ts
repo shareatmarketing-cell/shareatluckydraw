@@ -1,44 +1,20 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyClerkJwt, extractToken } from "../_shared/verify-clerk-jwt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Extract user ID from Clerk JWT
-    const token = authHeader.replace("Bearer ", "");
-    const parts = token.split(".");
-    if (parts.length !== 3) {
-      return new Response(JSON.stringify({ error: "Invalid token format" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const payload = JSON.parse(atob(parts[1]));
-    const userId = payload.sub;
-
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "No user ID in token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Verify Clerk JWT with cryptographic signature validation
+    const token = extractToken(req.headers.get("Authorization"));
+    const { userId } = await verifyClerkJwt(token);
 
     // Create Supabase client with service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -51,7 +27,7 @@ serve(async (req) => {
       .select("role")
       .eq("user_id", userId)
       .eq("role", "admin")
-      .single();
+      .maybeSingle();
 
     if (roleError || !roleData) {
       return new Response(JSON.stringify({ error: "Unauthorized - admin role required" }), {
@@ -62,14 +38,28 @@ serve(async (req) => {
 
     const { action, ...data } = await req.json();
 
+    console.log('Prize action:', action, 'by admin:', userId);
+
     if (action === "create") {
+      if (!data.name || typeof data.name !== 'string' || data.name.trim().length === 0 || data.name.length > 200) {
+        return new Response(JSON.stringify({ error: "Invalid prize name" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!data.month || !/^\d{4}-\d{2}-\d{2}$/.test(data.month)) {
+        return new Response(JSON.stringify({ error: "Invalid month format" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const { data: prize, error } = await supabase
         .from("prizes")
         .insert({
-          name: data.name,
-          description: data.description,
+          name: data.name.trim().substring(0, 200),
+          description: data.description?.substring(0, 1000) || null,
           month: data.month,
-          image_url: data.image_url,
+          image_url: data.image_url?.substring(0, 500) || null,
           is_active: data.is_active ?? true,
         })
         .select()
@@ -82,15 +72,22 @@ serve(async (req) => {
     }
 
     if (action === "update") {
+      if (!data.id || typeof data.id !== 'string') {
+        return new Response(JSON.stringify({ error: "Invalid prize id" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const updateData: Record<string, unknown> = {};
+      if (data.name !== undefined) updateData.name = String(data.name).trim().substring(0, 200);
+      if (data.description !== undefined) updateData.description = data.description?.substring(0, 1000) || null;
+      if (data.month !== undefined) updateData.month = data.month;
+      if (data.image_url !== undefined) updateData.image_url = data.image_url?.substring(0, 500) || null;
+      if (data.is_active !== undefined) updateData.is_active = Boolean(data.is_active);
+
       const { data: prize, error } = await supabase
         .from("prizes")
-        .update({
-          name: data.name,
-          description: data.description,
-          month: data.month,
-          image_url: data.image_url,
-          is_active: data.is_active,
-        })
+        .update(updateData)
         .eq("id", data.id)
         .select()
         .single();
@@ -102,6 +99,12 @@ serve(async (req) => {
     }
 
     if (action === "delete") {
+      if (!data.id || typeof data.id !== 'string') {
+        return new Response(JSON.stringify({ error: "Invalid prize id" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const { error } = await supabase.from("prizes").delete().eq("id", data.id);
       if (error) throw error;
       return new Response(JSON.stringify({ success: true }), {
@@ -116,8 +119,9 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
+    const status = message.includes('authorization') || message.includes('token') || message.includes('issuer') || message.includes('subject') ? 401 : 500;
+    return new Response(JSON.stringify({ error: status === 401 ? 'Authentication failed' : message }), {
+      status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
