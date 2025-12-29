@@ -1,44 +1,20 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyClerkJwt, extractToken } from "../_shared/verify-clerk-jwt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "No authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Extract user ID from Clerk JWT
-    const token = authHeader.replace("Bearer ", "");
-    const parts = token.split(".");
-    if (parts.length !== 3) {
-      return new Response(JSON.stringify({ error: "Invalid token format" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const payload = JSON.parse(atob(parts[1]));
-    const userId = payload.sub;
-
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "No user ID in token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Verify Clerk JWT with cryptographic signature validation
+    const token = extractToken(req.headers.get("Authorization"));
+    const { userId } = await verifyClerkJwt(token);
 
     // Create Supabase client with service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -73,12 +49,32 @@ serve(async (req) => {
       });
     }
 
-    console.log("Uploading file:", fileName, "Size:", file.size);
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      return new Response(JSON.stringify({ error: "Invalid file type. Allowed: JPEG, PNG, GIF, WebP" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      return new Response(JSON.stringify({ error: "File too large. Maximum size: 5MB" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Sanitize filename
+    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 100);
+
+    console.log("Uploading file:", sanitizedFileName, "Size:", file.size);
 
     // Upload to storage
     const { data, error } = await supabase.storage
       .from("reward-images")
-      .upload(fileName, file, {
+      .upload(sanitizedFileName, file, {
         contentType: file.type,
         upsert: true,
       });
@@ -91,7 +87,7 @@ serve(async (req) => {
     // Get public URL
     const { data: urlData } = supabase.storage
       .from("reward-images")
-      .getPublicUrl(fileName);
+      .getPublicUrl(sanitizedFileName);
 
     console.log("Upload successful, URL:", urlData.publicUrl);
 
@@ -101,8 +97,9 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
+    const status = message.includes('authorization') || message.includes('token') || message.includes('issuer') || message.includes('subject') ? 401 : 500;
+    return new Response(JSON.stringify({ error: status === 401 ? 'Authentication failed' : message }), {
+      status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyClerkJwt, extractToken } from "../_shared/verify-clerk-jwt.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -6,34 +7,15 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get the authorization header (Clerk JWT)
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Verify Clerk JWT with cryptographic signature validation
+    const token = extractToken(req.headers.get('Authorization'));
+    const { userId } = await verifyClerkJwt(token);
 
-    // Decode the JWT to get user info (Clerk JWT)
-    const token = authHeader.replace('Bearer ', '');
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const userId = payload.sub;
-
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Create Supabase client with service role (bypasses RLS)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -62,9 +44,15 @@ Deno.serve(async (req) => {
     switch (action) {
       case 'create': {
         const { code } = body;
+        if (!code || typeof code !== 'string' || code.trim().length === 0 || code.length > 50) {
+          return new Response(
+            JSON.stringify({ error: 'Invalid code format' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
         const { data, error } = await supabase
           .from('codes')
-          .insert({ code: code.trim() })
+          .insert({ code: code.trim().toUpperCase() })
           .select()
           .single();
 
@@ -84,9 +72,24 @@ Deno.serve(async (req) => {
 
       case 'bulk_create': {
         const { codes } = body;
+        if (!Array.isArray(codes) || codes.length === 0 || codes.length > 1000) {
+          return new Response(
+            JSON.stringify({ error: 'Invalid codes array' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        // Validate each code
+        for (const code of codes) {
+          if (typeof code !== 'string' || code.trim().length === 0 || code.length > 50) {
+            return new Response(
+              JSON.stringify({ error: 'Invalid code format in array' }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        }
         const { data, error } = await supabase
           .from('codes')
-          .insert(codes.map((code: string) => ({ code: code.trim() })))
+          .insert(codes.map((code: string) => ({ code: code.trim().toUpperCase() })))
           .select();
 
         if (error) {
@@ -105,6 +108,12 @@ Deno.serve(async (req) => {
 
       case 'delete': {
         const { id } = body;
+        if (!id || typeof id !== 'string') {
+          return new Response(
+            JSON.stringify({ error: 'Invalid id' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
         const { error } = await supabase
           .from('codes')
           .delete()
@@ -133,9 +142,10 @@ Deno.serve(async (req) => {
   } catch (error: unknown) {
     console.error('Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
+    const status = message.includes('authorization') || message.includes('token') || message.includes('issuer') || message.includes('subject') ? 401 : 500;
     return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: status === 401 ? 'Authentication failed' : message }),
+      { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

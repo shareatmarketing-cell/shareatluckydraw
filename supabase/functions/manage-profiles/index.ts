@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyClerkJwt, extractToken } from "../_shared/verify-clerk-jwt.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,26 +13,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Get the authorization header (Clerk JWT)
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Not authenticated' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Decode the JWT to get user info (Clerk JWT)
-    const token = authHeader.replace('Bearer ', '');
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const userId = payload.sub;
-
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Verify Clerk JWT with cryptographic signature validation
+    const token = extractToken(req.headers.get('Authorization'));
+    const { userId } = await verifyClerkJwt(token);
 
     // Create Supabase client with service role (bypasses RLS)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -68,13 +52,16 @@ Deno.serve(async (req) => {
           );
         }
 
+        // Validate full_name if provided
+        const sanitizedName = full_name ? String(full_name).trim().substring(0, 200) : null;
+
         // Create new profile
         const { data: newProfile, error: insertError } = await supabase
           .from('profiles')
           .insert({
             user_id: userId,
-            full_name: full_name || null,
-            avatar_url: avatar_url || null,
+            full_name: sanitizedName,
+            avatar_url: avatar_url?.substring(0, 500) || null,
           })
           .select()
           .single();
@@ -102,9 +89,36 @@ Deno.serve(async (req) => {
 
       case 'update': {
         const updates: Record<string, unknown> = {};
-        if (full_name !== undefined) updates.full_name = full_name;
-        if (phone !== undefined) updates.phone = phone;
-        if (avatar_url !== undefined) updates.avatar_url = avatar_url;
+        
+        if (full_name !== undefined) {
+          updates.full_name = full_name ? String(full_name).trim().substring(0, 200) : null;
+        }
+        if (phone !== undefined) {
+          // Basic phone validation - only allow digits, spaces, +, -, ()
+          const sanitizedPhone = phone ? String(phone).trim().substring(0, 20) : null;
+          if (sanitizedPhone && !/^[\d\s\+\-\(\)]+$/.test(sanitizedPhone)) {
+            return new Response(
+              JSON.stringify({ error: 'Invalid phone format' }),
+              { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          updates.phone = sanitizedPhone;
+        }
+        if (avatar_url !== undefined) {
+          // Validate URL format if provided
+          const sanitizedUrl = avatar_url ? String(avatar_url).trim().substring(0, 500) : null;
+          if (sanitizedUrl) {
+            try {
+              new URL(sanitizedUrl);
+            } catch {
+              return new Response(
+                JSON.stringify({ error: 'Invalid avatar URL' }),
+                { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+              );
+            }
+          }
+          updates.avatar_url = sanitizedUrl;
+        }
         updates.updated_at = new Date().toISOString();
 
         const { data, error } = await supabase
@@ -139,9 +153,10 @@ Deno.serve(async (req) => {
   } catch (error: unknown) {
     console.error('[manage-profiles] Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
+    const status = message.includes('authorization') || message.includes('token') || message.includes('issuer') || message.includes('subject') ? 401 : 500;
     return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: status === 401 ? 'Authentication failed' : message }),
+      { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

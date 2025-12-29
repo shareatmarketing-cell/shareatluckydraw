@@ -1,34 +1,31 @@
 project_id = "xgvcpucjfbsocfvafkme"
 
-[functions.promote-admin]
-verify_jwt = false
-
 [functions.get-user-roles]
 verify_jwt = false
 
-[functions.manage-prizes]
-verify_jwt = false
-
-[functions.upload-reward-image]
-verify_jwt = false
-
-[functions.manage-codes]
-verify_jwt = false
-
-[functions.manage-winners]
-verify_jwt = false
-
-[functions.get-admin-users]
-verify_jwt = false
-
-[functions.manage-user-roles]
+[functions.manage-draw]
 verify_jwt = false
 
 [functions.submit-code]
 verify_jwt = false
 
+[functions.manage-codes]
+verify_jwt = false
+
+[functions.manage-prizes]
+verify_jwt = false
+
+[functions.manage-winners]
+verify_jwt = false
+
+[functions.manage-user-roles]
+verify_jwt = false
+
 [functions.manage-profiles]
 verify_jwt = false
 
-[functions.manage-draw]
+[functions.get-admin-users]
+verify_jwt = false
+
+[functions.upload-reward-image]
 verify_jwt = false

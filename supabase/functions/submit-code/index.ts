@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyClerkJwt, extractToken } from "../_shared/verify-clerk-jwt.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,26 +13,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Get the authorization header (Clerk JWT)
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Not authenticated' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Decode the JWT to get user info (Clerk JWT)
-    const token = authHeader.replace('Bearer ', '');
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const userId = payload.sub;
-
-    if (!userId) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Verify Clerk JWT with cryptographic signature validation
+    const token = extractToken(req.headers.get('Authorization'));
+    const { userId } = await verifyClerkJwt(token);
 
     // Create Supabase client with service role (bypasses RLS)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -41,9 +25,9 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { code } = body;
 
-    if (!code) {
+    if (!code || typeof code !== 'string' || code.trim().length === 0 || code.length > 50) {
       return new Response(
-        JSON.stringify({ error: 'Code is required' }),
+        JSON.stringify({ error: 'Invalid code format' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -74,7 +58,7 @@ Deno.serve(async (req) => {
     const { data: codeData, error: codeError } = await supabase
       .from('codes')
       .select('*')
-      .eq('code', code.toUpperCase())
+      .eq('code', code.toUpperCase().trim())
       .eq('is_active', true)
       .maybeSingle();
 
@@ -154,9 +138,10 @@ Deno.serve(async (req) => {
   } catch (error: unknown) {
     console.error('[submit-code] Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
+    const status = message.includes('authorization') || message.includes('token') || message.includes('issuer') || message.includes('subject') ? 401 : 500;
     return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: status === 401 ? 'Authentication failed' : message }),
+      { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
