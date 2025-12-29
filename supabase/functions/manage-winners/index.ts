@@ -42,6 +42,57 @@ Deno.serve(async (req) => {
     console.log('Action:', action, 'Admin:', userId);
 
     switch (action) {
+      case 'list': {
+        // List all winners for admin with profile and prize info
+        const { data: winnersData, error } = await supabase
+          .from('winners')
+          .select('*')
+          .order('month', { ascending: false });
+
+        if (error) {
+          console.error('List winners error:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to fetch winners' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        if (!winnersData || winnersData.length === 0) {
+          return new Response(
+            JSON.stringify({ data: [] }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Get profiles and prizes
+        const userIds = [...new Set(winnersData.map(w => w.user_id))];
+        const prizeIds = [...new Set(winnersData.filter(w => w.prize_id).map(w => w.prize_id))];
+
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name')
+          .in('user_id', userIds);
+
+        const { data: prizes } = prizeIds.length > 0
+          ? await supabase.from('prizes').select('id, name').in('id', prizeIds)
+          : { data: [] };
+
+        const winners = winnersData.map(winner => {
+          const profile = profiles?.find(p => p.user_id === winner.user_id);
+          const prize = prizes?.find(p => p.id === winner.prize_id);
+          return {
+            ...winner,
+            full_name: profile?.full_name || null,
+            prize_name: prize?.name || null,
+          };
+        });
+
+        return new Response(
+          JSON.stringify({ data: winners }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       case 'create': {
         const { user_id, prize_id, month, is_public } = body;
         if (!user_id || typeof user_id !== 'string') {
@@ -70,7 +121,7 @@ Deno.serve(async (req) => {
         if (error) {
           console.error('Create winner error:', error);
           return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: 'Failed to create winner record' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -105,7 +156,7 @@ Deno.serve(async (req) => {
         if (error) {
           console.error('Update winner error:', error);
           return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: 'Failed to update winner record' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -132,7 +183,7 @@ Deno.serve(async (req) => {
         if (error) {
           console.error('Delete winner error:', error);
           return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: 'Failed to delete winner record' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }

@@ -42,6 +42,27 @@ Deno.serve(async (req) => {
     console.log('Action:', action, 'User:', userId);
 
     switch (action) {
+      case 'list': {
+        // List all codes for admin
+        const { data, error } = await supabase
+          .from('codes')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('List codes error:', error);
+          return new Response(
+            JSON.stringify({ error: 'Failed to fetch codes' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ data }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       case 'create': {
         const { code } = body;
         if (!code || typeof code !== 'string' || code.trim().length === 0 || code.length > 50) {
@@ -58,8 +79,11 @@ Deno.serve(async (req) => {
 
         if (error) {
           console.error('Create code error:', error);
+          const message = error.message?.includes('unique') 
+            ? 'This code already exists'
+            : 'Failed to create code';
           return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: message }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -94,8 +118,11 @@ Deno.serve(async (req) => {
 
         if (error) {
           console.error('Bulk create codes error:', error);
+          const message = error.message?.includes('unique') 
+            ? 'One or more codes already exist'
+            : 'Failed to create codes';
           return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: message }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -122,7 +149,7 @@ Deno.serve(async (req) => {
         if (error) {
           console.error('Delete code error:', error);
           return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: 'Failed to delete code' }),
             { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }

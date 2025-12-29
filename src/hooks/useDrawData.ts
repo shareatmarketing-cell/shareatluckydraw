@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/ClerkAuthContext';
+import { useAuth as useClerkAuth } from '@clerk/clerk-react';
 import { format, startOfMonth } from 'date-fns';
 
 // Get current month as DATE (first day of month)
@@ -49,7 +50,7 @@ export interface Winner {
   prizes?: Prize | null;
 }
 
-// Hook to get current month's prize
+// Hook to get current month's prize (prizes table is still public)
 export const useCurrentPrize = () => {
   return useQuery({
     queryKey: ['current-prize'],
@@ -69,7 +70,7 @@ export const useCurrentPrize = () => {
   });
 };
 
-// Hook to get all prizes (admin)
+// Hook to get all prizes (prizes table is still public)
 export const usePrizes = () => {
   return useQuery({
     queryKey: ['prizes'],
@@ -85,31 +86,36 @@ export const usePrizes = () => {
   });
 };
 
-// Hook to get user's entries
+// Hook to get user's entries (now uses edge function for security)
 export const useUserEntries = () => {
   const { user } = useAuth();
+  const { getToken } = useClerkAuth();
   
   return useQuery({
     queryKey: ['user-entries', user?.id],
     queryFn: async () => {
       if (!user) return [];
       
-      const { data, error } = await supabase
-        .from('draw_entries')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const token = await getToken();
+      if (!token) return [];
+
+      const { data, error } = await supabase.functions.invoke('get-user-data', {
+        body: { action: 'get_entries' },
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (error) throw error;
-      return data as DrawEntry[];
+      if (data?.error) throw new Error(data.error);
+      return (data?.data || []) as DrawEntry[];
     },
     enabled: !!user,
   });
 };
 
-// Hook to check if user has entered current month
+// Hook to check if user has entered current month (now uses edge function)
 export const useHasEnteredThisMonth = () => {
   const { user } = useAuth();
+  const { getToken } = useClerkAuth();
   const currentMonth = getCurrentMonth();
   
   return useQuery({
@@ -117,52 +123,47 @@ export const useHasEnteredThisMonth = () => {
     queryFn: async () => {
       if (!user) return false;
       
-      const { data, error } = await supabase
-        .from('draw_entries')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('month', currentMonth)
-        .maybeSingle();
+      const token = await getToken();
+      if (!token) return false;
+
+      const { data, error } = await supabase.functions.invoke('get-user-data', {
+        body: { action: 'has_entered_month', month: currentMonth },
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (error) throw error;
-      return !!data;
+      if (data?.error) throw new Error(data.error);
+      return data?.hasEntered || false;
     },
     enabled: !!user,
   });
 };
 
-// Hook to get public winners
+// Hook to get public winners (now uses edge function that returns limited profile data)
 export const usePublicWinners = () => {
   return useQuery({
     queryKey: ['public-winners'],
     queryFn: async () => {
-      const { data: winnersData, error } = await supabase
-        .from('winners')
-        .select('*')
-        .eq('is_public', true)
-        .order('month', { ascending: false })
-        .limit(10);
+      const { data, error } = await supabase.functions.invoke('get-public-data', {
+        body: { action: 'get_public_winners', limit: 10 },
+      });
 
       if (error) throw error;
-      if (!winnersData) return [];
+      if (data?.error) throw new Error(data.error);
+      if (!data?.data) return [];
 
-      // Fetch profiles and prizes separately
-      const winners = await Promise.all(
-        winnersData.map(async (winner) => {
-          const [profileResult, prizeResult] = await Promise.all([
-            supabase.from('profiles').select('full_name').eq('user_id', winner.user_id).maybeSingle(),
-            winner.prize_id ? supabase.from('prizes').select('*').eq('id', winner.prize_id).maybeSingle() : null,
-          ]);
-          
-          return {
-            ...winner,
-            profiles: profileResult.data,
-            prizes: prizeResult?.data || null,
-          } as Winner;
-        })
-      );
-
-      return winners;
+      // Transform to match expected Winner interface
+      return data.data.map((winner: { id: string; month: string; is_public: boolean; created_at: string; full_name: string; prize_name: string }) => ({
+        id: winner.id,
+        month: winner.month,
+        is_public: winner.is_public,
+        created_at: winner.created_at,
+        user_id: '', // Not exposed for privacy
+        prize_id: null, // Not exposed
+        notified_at: null,
+        profiles: { full_name: winner.full_name },
+        prizes: { name: winner.prize_name } as Prize,
+      })) as Winner[];
     },
   });
 };
@@ -194,107 +195,102 @@ export const useSubmitCode = () => {
   });
 };
 
-// Admin hooks
+// Admin hooks - These fetch data through edge functions for security
+// Admin status is verified server-side in edge functions
+
 export const useAllEntries = () => {
+  const { getToken } = useClerkAuth();
+  
   return useQuery({
     queryKey: ['all-entries'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('draw_entries')
-        .select(`
-          *,
-          profiles:user_id (full_name),
-          codes:code_id (code)
-        `)
-        .order('created_at', { ascending: false });
+      const token = await getToken();
+      if (!token) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.functions.invoke('manage-draw', {
+        body: { action: 'get_entries' },
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (error) throw error;
-      return data;
+      if (data?.error) throw new Error(data.error);
+      return data?.data || [];
     },
   });
 };
 
 export const useAllCodes = () => {
+  const { getToken } = useClerkAuth();
+  
   return useQuery({
     queryKey: ['all-codes'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('codes')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const token = await getToken();
+      if (!token) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.functions.invoke('manage-codes', {
+        body: { action: 'list' },
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (error) throw error;
-      return data as Code[];
+      if (data?.error) throw new Error(data.error);
+      return (data?.data || []) as Code[];
     },
   });
 };
 
 export const useAllWinners = () => {
+  const { getToken } = useClerkAuth();
+  
   return useQuery({
     queryKey: ['all-winners'],
     queryFn: async () => {
-      const { data: winnersData, error } = await supabase
-        .from('winners')
-        .select('*')
-        .order('month', { ascending: false });
+      const token = await getToken();
+      if (!token) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.functions.invoke('manage-winners', {
+        body: { action: 'list' },
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (error) throw error;
-      if (!winnersData) return [];
-
-      const winners = await Promise.all(
-        winnersData.map(async (winner) => {
-          const [profileResult, prizeResult] = await Promise.all([
-            supabase.from('profiles').select('full_name').eq('user_id', winner.user_id).maybeSingle(),
-            winner.prize_id ? supabase.from('prizes').select('*').eq('id', winner.prize_id).maybeSingle() : null,
-          ]);
-          
-          return {
-            ...winner,
-            profiles: profileResult.data,
-            prizes: prizeResult?.data || null,
-          } as Winner;
-        })
-      );
-
-      return winners;
+      if (data?.error) throw new Error(data.error);
+      
+      const winnersData = data?.data || [];
+      // Transform to match expected Winner interface
+      return winnersData.map((winner: Winner & { full_name?: string; prize_name?: string }) => ({
+        ...winner,
+        profiles: { full_name: winner.full_name || null },
+        prizes: winner.prize_name ? { name: winner.prize_name } as Prize : null,
+      })) as Winner[];
     },
   });
 };
 
-// Admin statistics
+// Admin statistics - fetched through edge function
 export const useAdminStats = () => {
+  const { getToken } = useClerkAuth();
+  
   return useQuery({
     queryKey: ['admin-stats'],
     queryFn: async () => {
-      const currentMonth = getCurrentMonth();
+      const token = await getToken();
+      if (!token) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.functions.invoke('manage-draw', {
+        body: { action: 'get_stats' },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       
-      // Get total users count
-      const { count: totalUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-        
-      // Get current month entries count
-      const { count: currentMonthEntries } = await supabase
-        .from('draw_entries')
-        .select('*', { count: 'exact', head: true })
-        .eq('month', currentMonth);
-        
-      // Get total codes
-      const { count: totalCodes } = await supabase
-        .from('codes')
-        .select('*', { count: 'exact', head: true });
-        
-      // Get used codes
-      const { count: usedCodes } = await supabase
-        .from('codes')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_used', true);
-        
-      return {
-        totalUsers: totalUsers || 0,
-        currentMonthEntries: currentMonthEntries || 0,
-        totalCodes: totalCodes || 0,
-        usedCodes: usedCodes || 0,
+      return data?.stats || {
+        totalUsers: 0,
+        currentMonthEntries: 0,
+        totalCodes: 0,
+        usedCodes: 0,
       };
     },
   });

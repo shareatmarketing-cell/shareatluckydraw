@@ -15,47 +15,18 @@ interface WinnerData {
 
 const WinnerBoard = () => {
   const { data: winners = [], isLoading } = useQuery({
-    queryKey: ['public-winners'],
+    queryKey: ['public-winners-home'],
     queryFn: async () => {
-      // First get winners
-      const { data: winnersData, error: winnersError } = await supabase
-        .from('winners')
-        .select('id, user_id, prize_id, month, is_public')
-        .eq('is_public', true)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (winnersError) throw winnersError;
-      if (!winnersData || winnersData.length === 0) return [];
-
-      // Get user_ids and prize_ids
-      const userIds = winnersData.map(w => w.user_id);
-      const prizeIds = winnersData.filter(w => w.prize_id).map(w => w.prize_id);
-
-      // Fetch profiles
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, full_name')
-        .in('user_id', userIds);
-
-      // Fetch prizes
-      const { data: prizes } = await supabase
-        .from('prizes')
-        .select('id, name')
-        .in('id', prizeIds);
-
-      // Map data
-      return winnersData.map(winner => {
-        const profile = profiles?.find(p => p.user_id === winner.user_id);
-        const prize = prizes?.find(p => p.id === winner.prize_id);
-        return {
-          id: winner.id,
-          month: winner.month,
-          is_public: winner.is_public,
-          full_name: profile?.full_name || 'Lucky Winner',
-          prize_name: prize?.name || 'Lucky Draw Prize',
-        } as WinnerData;
+      // Use the secure edge function that only returns public data
+      const { data, error } = await supabase.functions.invoke('get-public-data', {
+        body: { action: 'get_public_winners', limit: 5 },
       });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.data) return [];
+
+      return data.data as WinnerData[];
     },
   });
 

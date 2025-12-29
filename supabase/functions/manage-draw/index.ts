@@ -42,6 +42,30 @@ Deno.serve(async (req) => {
     console.log('Draw action:', action, 'Admin:', userId);
 
     switch (action) {
+      case 'get_stats': {
+        // Get admin statistics
+        const currentMonth = new Date().toISOString().slice(0, 7) + '-01';
+        
+        const [profilesResult, entriesResult, codesResult, usedCodesResult] = await Promise.all([
+          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          supabase.from('draw_entries').select('*', { count: 'exact', head: true }).eq('month', currentMonth),
+          supabase.from('codes').select('*', { count: 'exact', head: true }),
+          supabase.from('codes').select('*', { count: 'exact', head: true }).eq('is_used', true),
+        ]);
+
+        return new Response(
+          JSON.stringify({ 
+            stats: {
+              totalUsers: profilesResult.count || 0,
+              currentMonthEntries: entriesResult.count || 0,
+              totalCodes: codesResult.count || 0,
+              usedCodes: usedCodesResult.count || 0,
+            }
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       case 'get_entries': {
         // Get current month entries
         const { month } = body;
@@ -52,14 +76,14 @@ Deno.serve(async (req) => {
         // Get draw entries for the month
         const { data: entries, error: entriesError } = await supabase
           .from('draw_entries')
-          .select('id, user_id, created_at, code_id')
+          .select('id, user_id, created_at, code_id, month')
           .eq('month', targetMonth);
 
         if (entriesError) {
           console.error('Error fetching entries:', entriesError);
           return new Response(
-            JSON.stringify({ error: entriesError.message }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({ error: 'Failed to fetch entries' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
