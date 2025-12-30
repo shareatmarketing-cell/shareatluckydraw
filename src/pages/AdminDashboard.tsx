@@ -1582,12 +1582,12 @@ const AdminDashboard = () => {
 
         {/* Reward Dialog */}
         <Dialog open={rewardDialogOpen} onOpenChange={(open) => { setRewardDialogOpen(open); if (!open) resetRewardForm(); }}>
-          <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col overflow-hidden">
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>{editingReward ? "Edit Reward" : "Add New Reward"}</DialogTitle>
             </DialogHeader>
-            <ScrollArea className="flex-1 max-h-[60vh] pr-4">
-            <div className="space-y-4 py-4">
+            <ScrollArea className="flex-1 overflow-y-auto pr-4 -mr-4">
+              <div className="space-y-4 py-4 pr-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
                 <Input
@@ -1682,9 +1682,9 @@ const AdminDashboard = () => {
                   onCheckedChange={(checked) => setRewardForm({ ...rewardForm, is_active: checked })}
                 />
               </div>
-            </div>
+              </div>
             </ScrollArea>
-            <div className="flex gap-2 justify-end pt-4 border-t">
+            <div className="flex gap-2 justify-end pt-4 border-t flex-shrink-0">
               <Button variant="outline" onClick={() => { setRewardDialogOpen(false); resetRewardForm(); }}>
                 Cancel
               </Button>
