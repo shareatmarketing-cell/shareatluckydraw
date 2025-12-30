@@ -1135,30 +1135,46 @@ const AdminDashboard = () => {
                 <CardContent>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {prizes.map((prize) => (
-                      <Card key={prize.id} className="overflow-hidden">
+                      <Card key={prize.id} className={`overflow-hidden ${prize.is_grand_prize ? 'ring-2 ring-yellow-500 ring-offset-2' : ''}`}>
                         <CardContent className="p-4">
                           {prize.image_url && (
-                            <img 
-                              src={prize.image_url} 
-                              alt={prize.name}
-                              className="w-full h-32 object-cover rounded-lg mb-3"
-                            />
+                            <div className="relative">
+                              <img 
+                                src={prize.image_url} 
+                                alt={prize.name}
+                                className="w-full h-32 object-cover rounded-lg mb-3"
+                              />
+                              {prize.is_grand_prize && (
+                                <div className="absolute top-2 left-2 flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-amber-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
+                                  <Sparkles className="w-3 h-3" />
+                                  Grand Prize
+                                </div>
+                              )}
+                            </div>
                           )}
                           {!prize.image_url && (
-                            <div className="w-full h-32 bg-muted rounded-lg mb-3 flex items-center justify-center">
+                            <div className="relative w-full h-32 bg-muted rounded-lg mb-3 flex items-center justify-center">
                               <Gift className="w-8 h-8 text-muted-foreground" />
+                              {prize.is_grand_prize && (
+                                <div className="absolute top-2 left-2 flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-amber-500 text-white text-xs px-2 py-1 rounded-full font-semibold shadow-lg">
+                                  <Sparkles className="w-3 h-3" />
+                                  Grand Prize
+                                </div>
+                              )}
                             </div>
                           )}
                           <h3 className="font-semibold text-foreground">{prize.name}</h3>
                           <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{prize.description}</p>
                           <div className="flex items-center justify-between mt-3">
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              prize.is_active 
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-gray-100 text-gray-600"
-                            }`}>
-                              {prize.is_active ? "Active" : "Inactive"}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                prize.is_active 
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}>
+                                {prize.is_active ? "Active" : "Inactive"}
+                              </span>
+                            </div>
                             <span className="text-xs text-muted-foreground">
                               {format(new Date(prize.month), 'MMM yyyy')}
                             </span>

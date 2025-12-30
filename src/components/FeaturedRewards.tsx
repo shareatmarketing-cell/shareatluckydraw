@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Gift, Ticket, Sparkles, Trophy, Star, Crown, ArrowRight, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useCurrentGrandPrize } from "@/hooks/useDrawData";
 
 const rewards = [
   {
@@ -42,6 +43,8 @@ const floatingPrizes = [
 ];
 
 const FeaturedRewards = () => {
+  const { data: grandPrize } = useCurrentGrandPrize();
+  
   return (
     <section id="rewards" className="py-24 relative overflow-hidden">
       {/* Background */}
@@ -230,7 +233,13 @@ const FeaturedRewards = () => {
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                         className="mb-4"
                       >
-                        <Crown className="w-16 h-16 text-secondary drop-shadow-lg" />
+                        {grandPrize?.image_url ? (
+                          <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-secondary shadow-lg">
+                            <img src={grandPrize.image_url} alt={grandPrize.name} className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <Crown className="w-16 h-16 text-secondary drop-shadow-lg" />
+                        )}
                       </motion.div>
                       
                       <div className="flex items-center gap-1 mb-3">
@@ -240,10 +249,10 @@ const FeaturedRewards = () => {
                       </div>
                       
                       <h3 className="text-2xl font-display font-bold mb-2 text-foreground">
-                        Grand Prize
+                        {grandPrize?.name || "Grand Prize"}
                       </h3>
-                      <p className="text-muted-foreground text-sm mb-4">
-                        Win up to ₹1 Lakh worth of prizes!
+                      <p className="text-muted-foreground text-sm mb-4 max-w-[200px]">
+                        {grandPrize?.description || "Win up to ₹1 Lakh worth of prizes!"}
                       </p>
                       
                       <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary to-secondary rounded-full">
