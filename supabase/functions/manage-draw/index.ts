@@ -157,9 +157,30 @@ Deno.serve(async (req) => {
         // Get unique user_ids
         const uniqueUserIds = [...new Set(entries.map(e => e.user_id))];
         
-        // Shuffle and pick winners
-        const shuffled = uniqueUserIds.sort(() => Math.random() - 0.5);
+        // Cryptographically secure Fisher-Yates shuffle
+        function cryptoShuffle<T>(array: T[]): T[] {
+          const shuffled = [...array];
+          for (let i = shuffled.length - 1; i > 0; i--) {
+            const randomBuffer = new Uint32Array(1);
+            crypto.getRandomValues(randomBuffer);
+            const j = randomBuffer[0] % (i + 1);
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+          return shuffled;
+        }
+        
+        const shuffled = cryptoShuffle(uniqueUserIds);
         const selectedUserIds = shuffled.slice(0, Math.min(winnerCount, shuffled.length));
+        
+        // Audit log for compliance
+        console.log('Draw executed:', {
+          month: targetMonth,
+          entriesCount: entries.length,
+          uniqueUsers: uniqueUserIds.length,
+          winnersSelected: selectedUserIds.length,
+          timestamp: new Date().toISOString(),
+          adminUserId: userId,
+        });
 
         // Get profiles for winners
         const { data: profiles } = await supabase
