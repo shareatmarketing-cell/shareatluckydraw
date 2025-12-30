@@ -66,8 +66,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Sanitize filename
-    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 100);
+    // Generate UUID-based filename to eliminate user input from filename
+    const ext = fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i)?.[0] || '.jpg';
+    const sanitizedFileName = `rewards_${crypto.randomUUID()}${ext.toLowerCase()}`;
 
     console.log("Uploading file:", sanitizedFileName, "Size:", file.size);
 
