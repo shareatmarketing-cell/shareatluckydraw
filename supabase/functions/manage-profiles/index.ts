@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
         if (fetchError) {
           console.error('[manage-profiles] Fetch error:', fetchError);
           return new Response(
-            JSON.stringify({ error: fetchError.message }),
+            JSON.stringify({ error: 'Failed to fetch profile' }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
         if (insertError) {
           console.error('[manage-profiles] Insert error:', insertError);
           return new Response(
-            JSON.stringify({ error: insertError.message }),
+            JSON.stringify({ error: 'Failed to create profile' }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
         if (error) {
           console.error('[manage-profiles] Update error:', error);
           return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: 'Failed to update profile' }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }

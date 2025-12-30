@@ -74,8 +74,8 @@ Deno.serve(async (req) => {
       if (error) {
         console.error('Update role error:', error);
         return new Response(
-          JSON.stringify({ error: error.message }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'Failed to update user role' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     } else {
@@ -87,8 +87,8 @@ Deno.serve(async (req) => {
       if (error) {
         console.error('Insert role error:', error);
         return new Response(
-          JSON.stringify({ error: error.message }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'Failed to assign user role' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }

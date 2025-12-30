@@ -47,8 +47,8 @@ Deno.serve(async (req) => {
     if (profileError) {
       console.error('Profile fetch error:', profileError);
       return new Response(
-        JSON.stringify({ error: profileError.message }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Failed to fetch user profiles' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

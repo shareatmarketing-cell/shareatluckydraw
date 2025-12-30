@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { User, Phone, Mail, Camera, Loader2, Save, LogOut } from "lucide-react";
+import { useAuth as useClerkAuth } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, profile, isLoading: authLoading, signOut, isSignedIn } = useAuth();
+  const { getToken } = useClerkAuth();
   
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -41,15 +43,20 @@ const Profile = () => {
     
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
+      const token = await getToken();
+      const { data, error } = await supabase.functions.invoke('manage-profiles', {
+        body: {
+          action: 'update',
           full_name: fullName.trim(),
           phone: phone.trim(),
-        })
-        .eq("user_id", user.id);
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Profile Updated",

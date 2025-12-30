@@ -65,7 +65,13 @@ Deno.serve(async (req) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Prize create error:', error);
+        return new Response(JSON.stringify({ error: 'Failed to create prize' }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       return new Response(JSON.stringify({ prize }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -92,7 +98,13 @@ Deno.serve(async (req) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Prize update error:', error);
+        return new Response(JSON.stringify({ error: 'Failed to update prize' }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       return new Response(JSON.stringify({ prize }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -106,7 +118,13 @@ Deno.serve(async (req) => {
         });
       }
       const { error } = await supabase.from("prizes").delete().eq("id", data.id);
-      if (error) throw error;
+      if (error) {
+        console.error('Prize delete error:', error);
+        return new Response(JSON.stringify({ error: 'Failed to delete prize' }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
