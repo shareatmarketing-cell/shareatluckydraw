@@ -83,6 +83,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean | null
+          is_grand_prize: boolean | null
           month: string
           name: string
           updated_at: string
@@ -93,6 +94,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          is_grand_prize?: boolean | null
           month: string
           name: string
           updated_at?: string
@@ -103,6 +105,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          is_grand_prize?: boolean | null
           month?: string
           name?: string
           updated_at?: string

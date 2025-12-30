@@ -67,6 +67,7 @@ interface RewardForm {
   month: string;
   image_url: string;
   is_active: boolean;
+  is_grand_prize: boolean;
 }
 
 interface WinnerForm {
@@ -97,6 +98,7 @@ const AdminDashboard = () => {
     month: format(new Date(), "yyyy-MM-dd"),
     image_url: "",
     is_active: true,
+    is_grand_prize: false,
   });
 
   // Winner form state
@@ -124,6 +126,7 @@ const AdminDashboard = () => {
       month: format(new Date(), "yyyy-MM-dd"),
       image_url: "",
       is_active: true,
+      is_grand_prize: false,
     });
     setEditingReward(null);
   };
@@ -682,6 +685,7 @@ const AdminDashboard = () => {
       month: prize.month,
       image_url: prize.image_url || "",
       is_active: prize.is_active ?? true,
+      is_grand_prize: prize.is_grand_prize ?? false,
     });
     setRewardDialogOpen(true);
   };
@@ -1680,6 +1684,17 @@ const AdminDashboard = () => {
                   id="is_active"
                   checked={rewardForm.is_active}
                   onCheckedChange={(checked) => setRewardForm({ ...rewardForm, is_active: checked })}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-yellow-500" />
+                  <Label htmlFor="is_grand_prize">Grand Prize</Label>
+                </div>
+                <Switch
+                  id="is_grand_prize"
+                  checked={rewardForm.is_grand_prize}
+                  onCheckedChange={(checked) => setRewardForm({ ...rewardForm, is_grand_prize: checked })}
                 />
               </div>
               </div>
