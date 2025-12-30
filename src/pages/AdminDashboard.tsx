@@ -216,43 +216,31 @@ const AdminDashboard = () => {
     enabled: isAdmin
   });
 
-  // Fetch all winners for winners tab
+  // Fetch all winners for winners tab via edge function (bypasses RLS)
   const { data: winners = [] } = useQuery({
     queryKey: ['admin-winners'],
     queryFn: async () => {
-      const { data: winnersData } = await supabase
-        .from('winners')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (!winnersData || winnersData.length === 0) return [];
+      const token = await getToken();
+      if (!token) return [];
 
-      // Get user_ids and prize_ids
-      const userIds = winnersData.map(w => w.user_id);
-      const prizeIds = winnersData.filter(w => w.prize_id).map(w => w.prize_id);
-
-      // Fetch profiles
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, full_name')
-        .in('user_id', userIds);
-
-      // Fetch prizes
-      const { data: prizesData } = await supabase
-        .from('prizes')
-        .select('id, name')
-        .in('id', prizeIds);
-
-      // Map data
-      return winnersData.map(winner => {
-        const profile = profiles?.find(p => p.user_id === winner.user_id);
-        const prize = prizesData?.find(p => p.id === winner.prize_id);
-        return {
-          ...winner,
-          profiles: { full_name: profile?.full_name || 'Unknown User' },
-          prizes: { name: prize?.name || 'No Prize' },
-        };
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-winners`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action: 'list' }),
       });
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to fetch winners');
+      
+      // Map to expected format
+      return (data.data || []).map((winner: any) => ({
+        ...winner,
+        profiles: { full_name: winner.full_name || 'Unknown User' },
+        prizes: { name: winner.prize_name || 'No Prize' },
+      }));
     },
     enabled: isAdmin
   });
