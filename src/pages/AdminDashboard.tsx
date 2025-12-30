@@ -185,13 +185,19 @@ const AdminDashboard = () => {
   const { data: codes = [] } = useQuery({
     queryKey: ['admin-codes'],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('codes')
-        .select('*')
-        .order('created_at', { ascending: false });
-      return data || [];
+      const token = await getToken();
+      if (!token) return [];
+
+      const { data, error } = await supabase.functions.invoke('manage-codes', {
+        body: { action: 'list' },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data?.data || [];
     },
-    enabled: isAdmin
+    enabled: isAdmin,
   });
 
   // Fetch all prizes for rewards tab
@@ -285,7 +291,7 @@ const AdminDashboard = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['all-codes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-codes'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       setNewCode("");
       toast.success("Code added successfully");
@@ -312,7 +318,7 @@ const AdminDashboard = () => {
       return data.count;
     },
     onSuccess: (count) => {
-      queryClient.invalidateQueries({ queryKey: ['all-codes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-codes'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       toast.success(`${count} codes added successfully`);
     },
@@ -338,7 +344,7 @@ const AdminDashboard = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['all-codes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-codes'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       toast.success("Code deleted");
     },
