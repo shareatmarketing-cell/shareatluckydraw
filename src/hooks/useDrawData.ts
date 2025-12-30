@@ -15,6 +15,7 @@ export interface Prize {
   image_url: string | null;
   month: string;
   is_active: boolean;
+  is_grand_prize?: boolean;
   created_at: string;
 }
 
@@ -59,6 +60,27 @@ export const useCurrentPrize = () => {
         .from('prizes')
         .select('*')
         .eq('is_active', true)
+        .gte('month', getCurrentMonth())
+        .order('month', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data as Prize | null;
+    },
+  });
+};
+
+// Hook to get current month's grand prize
+export const useCurrentGrandPrize = () => {
+  return useQuery({
+    queryKey: ['current-grand-prize'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('prizes')
+        .select('*')
+        .eq('is_active', true)
+        .eq('is_grand_prize', true)
         .gte('month', getCurrentMonth())
         .order('month', { ascending: true })
         .limit(1)

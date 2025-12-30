@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Gift, Star, Filter, Loader2 } from "lucide-react";
+import { Gift, Star, Filter, Loader2, Sparkles, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/contexts/ClerkAuthContext";
-import { useCurrentPrize } from "@/hooks/useDrawData";
+import { useCurrentPrize, useCurrentGrandPrize } from "@/hooks/useDrawData";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -20,6 +20,7 @@ const Rewards = () => {
   const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const { data: currentPrize, isLoading: prizeLoading } = useCurrentPrize();
+  const { data: grandPrize } = useCurrentGrandPrize();
 
   const handleEnterDraw = () => {
     navigate("/dashboard", { state: { openCodeDialog: true } });
@@ -147,7 +148,7 @@ const Rewards = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 * index }}
                   >
-                    <Card className="overflow-hidden border border-border hover:shadow-lg transition-shadow">
+                    <Card className={`overflow-hidden border border-border hover:shadow-lg transition-shadow ${prize.is_grand_prize ? 'ring-2 ring-yellow-500 ring-offset-2' : ''}`}>
                       {/* Prize Image */}
                       <div className="relative h-48 bg-gradient-to-br from-muted to-muted/50 overflow-hidden">
                         {prize.image_url ? (
@@ -159,6 +160,14 @@ const Rewards = () => {
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <Gift className="w-16 h-16 text-muted-foreground/50" />
+                          </div>
+                        )}
+                        
+                        {/* Grand Prize Badge */}
+                        {prize.is_grand_prize && (
+                          <div className="absolute top-3 right-3 flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-amber-500 text-white text-xs px-3 py-1.5 rounded-full font-semibold shadow-lg">
+                            <Crown className="w-3 h-3" />
+                            Grand Prize
                           </div>
                         )}
                         
@@ -232,35 +241,47 @@ const Rewards = () => {
             </motion.div>
           )}
 
-          {/* Current Month Highlight */}
-          {currentPrize && (
+          {/* Current Month Highlight - Show Grand Prize if available, otherwise current prize */}
+          {(grandPrize || currentPrize) && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
               className="mt-12"
             >
-              <Card className="overflow-hidden bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
+              <Card className="overflow-hidden bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 text-white ring-4 ring-yellow-300/50 ring-offset-2">
                 <CardContent className="p-6 md:p-8">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                      <Badge variant="secondary" className="mb-3">
-                        <Star className="w-3 h-3 mr-1" />
-                        This Month's Grand Prize
-                      </Badge>
-                      <h2 className="text-2xl md:text-3xl font-display font-bold mb-2">
-                        {currentPrize.name}
-                      </h2>
-                      <p className="text-primary-foreground/80">
-                        {currentPrize.description || "Enter the lucky draw for a chance to win!"}
-                      </p>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                    <div className="flex items-center gap-6">
+                      {(grandPrize || currentPrize)?.image_url && (
+                        <div className="hidden md:block w-24 h-24 rounded-xl overflow-hidden border-4 border-white/30 shadow-xl flex-shrink-0">
+                          <img 
+                            src={(grandPrize || currentPrize)?.image_url || ''} 
+                            alt={(grandPrize || currentPrize)?.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <Badge className="mb-3 bg-white/20 text-white border-white/30 hover:bg-white/30">
+                          <Crown className="w-3 h-3 mr-1" />
+                          This Month's Grand Prize
+                        </Badge>
+                        <h2 className="text-2xl md:text-3xl font-display font-bold mb-2">
+                          {(grandPrize || currentPrize)?.name}
+                        </h2>
+                        <p className="text-white/80">
+                          {(grandPrize || currentPrize)?.description || "Enter the lucky draw for a chance to win!"}
+                        </p>
+                      </div>
                     </div>
                     <Button 
                       variant="secondary" 
                       size="lg"
-                      className="bg-card text-foreground hover:bg-card/90"
+                      className="bg-white text-amber-600 hover:bg-white/90 font-bold shadow-lg"
                       onClick={handleEnterDraw}
                     >
+                      <Sparkles className="w-4 h-4 mr-2" />
                       Enter Now
                     </Button>
                   </div>
