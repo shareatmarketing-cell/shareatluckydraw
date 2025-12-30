@@ -285,8 +285,8 @@ const AdminDashboard = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-codes'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-codes-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['all-codes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       setNewCode("");
       toast.success("Code added successfully");
     },
@@ -312,8 +312,8 @@ const AdminDashboard = () => {
       return data.count;
     },
     onSuccess: (count) => {
-      queryClient.invalidateQueries({ queryKey: ['admin-codes'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-codes-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['all-codes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       toast.success(`${count} codes added successfully`);
     },
     onError: (error: any) => {
@@ -338,8 +338,8 @@ const AdminDashboard = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-codes'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-codes-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['all-codes'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-stats'] });
       toast.success("Code deleted");
     },
     onError: (error: any) => {
