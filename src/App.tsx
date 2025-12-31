@@ -17,7 +17,11 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string;
+// Note: frontend env vars may not always be injected in preview builds.
+// Clerk publishable keys are safe to ship client-side.
+const CLERK_PUBLISHABLE_KEY =
+  (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined)?.trim() ||
+  "pk_test_cHJvbXB0LWdlbGRpbmctMTMuY2xlcmsuYWNjb3VudHMuZGV2JA";
 
 // Protected route wrapper
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => (
