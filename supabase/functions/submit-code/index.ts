@@ -6,6 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Rate limiting configuration
+const RATE_LIMIT_MAX_REQUESTS = 5; // Max 5 code submissions
+const RATE_LIMIT_WINDOW_SECONDS = 60; // Per minute
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -21,6 +25,28 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Rate limiting check - prevent brute force attacks
+    const { data: rateLimitPassed, error: rateLimitError } = await supabase.rpc(
+      'check_rate_limit',
+      {
+        p_key: userId,
+        p_endpoint: 'submit-code',
+        p_max_requests: RATE_LIMIT_MAX_REQUESTS,
+        p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+      }
+    );
+
+    if (rateLimitError) {
+      console.error('[submit-code] Rate limit check error:', rateLimitError);
+      // Fail open for rate limiting errors but log for monitoring
+    } else if (!rateLimitPassed) {
+      console.log('[submit-code] Rate limit exceeded for user:', userId);
+      return new Response(
+        JSON.stringify({ error: 'Too many attempts. Please try again later.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     const body = await req.json();
     const { code } = body;
