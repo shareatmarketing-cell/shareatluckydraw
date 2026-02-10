@@ -44,7 +44,7 @@ const Dashboard = () => {
     return entryMonth === currentMonth;
   }).length || 0;
 
-  const userName = profile?.full_name || user.email?.split('@')[0] || 'User';
+  const userName = profile?.full_name || user?.email?.split('@')[0] || 'User';
   const userInitials = userName.slice(0, 2).toUpperCase();
 
   return (
