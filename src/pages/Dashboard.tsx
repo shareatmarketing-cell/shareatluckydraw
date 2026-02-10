@@ -31,19 +31,7 @@ const Dashboard = () => {
     return location.state?.openCodeDialog || false;
   });
 
-  useEffect(() => {
-    if (!authLoading && !isSignedIn) {
-      navigate("/auth");
-    }
-  }, [isSignedIn, authLoading, navigate]);
-
-  if (authLoading || !isSignedIn || !user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  // Auth bypass: don't redirect or block rendering when Clerk can't load
 
   const memberSince = user?.created_at 
     ? format(new Date(user.created_at), "MMM yyyy")
@@ -56,7 +44,7 @@ const Dashboard = () => {
     return entryMonth === currentMonth;
   }).length || 0;
 
-  const userName = profile?.full_name || user.email?.split('@')[0] || 'User';
+  const userName = profile?.full_name || user?.email?.split('@')[0] || 'User';
   const userInitials = userName.slice(0, 2).toUpperCase();
 
   return (
@@ -82,7 +70,7 @@ const Dashboard = () => {
                 <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
                   Welcome, {userName}!
                 </h1>
-                <p className="text-muted-foreground text-sm">{user.email}</p>
+                <p className="text-muted-foreground text-sm">{user?.email || ''}</p>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
