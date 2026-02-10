@@ -70,7 +70,7 @@ const Dashboard = () => {
                 <h1 className="text-2xl md:text-3xl font-display font-bold text-foreground">
                   Welcome, {userName}!
                 </h1>
-                <p className="text-muted-foreground text-sm">{user.email}</p>
+                <p className="text-muted-foreground text-sm">{user?.email || ''}</p>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
