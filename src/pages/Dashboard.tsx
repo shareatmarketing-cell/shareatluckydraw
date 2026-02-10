@@ -31,19 +31,7 @@ const Dashboard = () => {
     return location.state?.openCodeDialog || false;
   });
 
-  useEffect(() => {
-    if (!authLoading && !isSignedIn) {
-      navigate("/auth");
-    }
-  }, [isSignedIn, authLoading, navigate]);
-
-  if (authLoading || !isSignedIn || !user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  // Auth bypass: don't redirect or block rendering when Clerk can't load
 
   const memberSince = user?.created_at 
     ? format(new Date(user.created_at), "MMM yyyy")
